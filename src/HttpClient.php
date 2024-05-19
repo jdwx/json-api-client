@@ -67,7 +67,7 @@ readonly class HttpClient {
 
     /**
      * @param string $i_stPath
-     * @param array $i_rJson
+     * @param mixed[] $i_rJson
      * @param string $i_stContentType
      * @param bool $i_bAllowFailure
      * @return Response
