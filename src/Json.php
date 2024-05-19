@@ -165,6 +165,7 @@ final class Json {
     /** @return mixed[] */
     public static function fromFile( string $i_stFilename ) : array {
         set_error_handler( null );
+        /** @noinspection PhpUsageOfSilenceOperatorInspection */
         $st = @file_get_contents( $i_stFilename );
         restore_error_handler();
         if ( ! is_string( $st ) ) {
@@ -203,6 +204,7 @@ final class Json {
     public static function toFile( string $i_stFileName, mixed $i_x ) : void {
         $st = self::encode( $i_x );
         set_error_handler( null );
+        /** @noinspection PhpUsageOfSilenceOperatorInspection */
         $bi = @file_put_contents( $i_stFileName, $st );
         restore_error_handler();
         if ( $bi === false ) {
