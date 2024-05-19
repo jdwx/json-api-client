@@ -78,11 +78,6 @@ final class Json {
     }
 
 
-    public static function decodePrintable( string $i_stJson ) : bool|float|int|string|null {
-        return self::expectPrintable( self::decode( $i_stJson ) );
-    }
-
-
     public static function decodeScalar( string $i_stJson ) : bool|float|int|string {
         return self::expectScalar( self::decode( $i_stJson ) );
     }
@@ -103,6 +98,11 @@ final class Json {
     }
 
 
+    public static function decodeStringable( string $i_stJson ) : bool|float|int|string|null {
+        return self::expectStringable( self::decode( $i_stJson ) );
+    }
+
+
     /**
      * Encode an arbitrary value as JSON.
      *
@@ -115,6 +115,7 @@ final class Json {
     }
 
 
+    /** @return mixed[] */
     public static function expectArray( mixed $i_x ) : array {
         if ( ! is_array( $i_x ) ) {
             throw new JsonException( 'Expected array, got: ' . gettype( $i_x ) );
@@ -145,14 +146,6 @@ final class Json {
     }
 
 
-    public static function expectPrintable( mixed $i_x ) : bool|float|int|string|null {
-        if ( ! is_scalar( $i_x ) && ! is_null( $i_x ) ) {
-            throw new JsonException( 'Expected printable, got: ' . gettype( $i_x ) );
-        }
-        return $i_x;
-    }
-
-
     public static function expectScalar( mixed $i_x ) : bool|float|int|string {
         if ( ! is_scalar( $i_x ) ) {
             throw new JsonException( 'Expected scalar, got: ' . gettype( $i_x ) );
@@ -161,13 +154,44 @@ final class Json {
     }
 
 
+    public static function expectStringable( mixed $i_x ) : bool|float|int|string|null {
+        if ( ! is_scalar( $i_x ) && ! is_null( $i_x ) ) {
+            throw new JsonException( 'Expected stringable, got: ' . gettype( $i_x ) );
+        }
+        return $i_x;
+    }
+
+
     /** @return mixed[] */
     public static function fromFile( string $i_stFilename ) : array {
-        $st = file_get_contents( $i_stFilename );
+        set_error_handler( null );
+        $st = @file_get_contents( $i_stFilename );
+        restore_error_handler();
         if ( ! is_string( $st ) ) {
             throw new JsonException( "Failed to read: {$i_stFilename}" );
         }
         return self::decodeArray( $st );
+    }
+
+
+    /**
+     * @param mixed[]|bool|float|int|string|null $i_x Input
+     * @return string A printable string representing the input.
+     *
+     * This is useful for logging and debugging. It is not intended for
+     * serialization.
+     */
+    public static function safeString( mixed $i_x ) : string {
+        if ( is_array( $i_x ) ) {
+            return self::encode( $i_x );
+        }
+        if ( is_bool( $i_x ) ) {
+            return $i_x ? 'true' : 'false';
+        }
+        if ( is_null( $i_x ) ) {
+            return 'null';
+        }
+        return strval( $i_x );
     }
 
 
@@ -178,19 +202,12 @@ final class Json {
      */
     public static function toFile( string $i_stFileName, mixed $i_x ) : void {
         $st = self::encode( $i_x );
-        $bi = file_put_contents( $i_stFileName, $st );
+        set_error_handler( null );
+        $bi = @file_put_contents( $i_stFileName, $st );
+        restore_error_handler();
         if ( $bi === false ) {
             throw new JsonException( "Failed to write: {$i_stFileName}" );
         }
-    }
-
-
-    /** @param mixed[]|bool|float|int|string|null $i_x */
-    public static function toString( mixed $i_x ) : string {
-        if ( is_array( $i_x ) ) {
-            return self::encode( $i_x );
-        }
-        return strval( $i_x );
     }
 
 

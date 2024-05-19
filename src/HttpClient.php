@@ -8,99 +8,84 @@ namespace JDWX\JsonApiClient;
 
 
 use GuzzleHttp\Client;
-use RuntimeException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Uri;
+use JsonException;
+use Psr\Http\Client\ClientInterface;
+use Throwable;
 
 
-class HttpClient {
+readonly class HttpClient {
 
 
-    private Client $client;
-
-    private ?int $nuStatus = null;
+    private Uri $baseURI;
 
 
-    public function __construct( string $i_stBaseURI, float $i_fTimeout = 5.0 ) {
-        $this->client = new Client([
-            'base_uri' => $i_stBaseURI,
-            'timeout' => $i_fTimeout,
-        ]);
+    public function __construct( private ClientInterface $client, string $i_stBaseURI ) {
+        $this->baseURI = new Uri( $i_stBaseURI );
     }
 
 
     /** @param array<string, string> $i_rHeaders */
     private function request( string $i_stMethod, string $i_stPath,
                               ?string $i_nstBody = null, array $i_rHeaders = [],
-                              bool $i_bAllowFailure = false ) : string {
-        $rRequest = [
-            'headers' => $i_rHeaders,
-        ];
-        if ( is_string( $i_nstBody ) ) {
-            $rRequest[ 'body' ] = $i_nstBody;
+                              bool $i_bAllowFailure = false ) : Response {
+        $uri = $this->baseURI->withPath( $i_stPath );
+        $req = new Request( $i_stMethod, $uri, $i_rHeaders, $i_nstBody );
+        try {
+            $response = $this->client->sendRequest( $req );
+        } catch ( Throwable $ex ) {
+            throw new TransportException(
+                "Transport Error for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
+                $ex->getCode(),
+                $ex
+            );
         }
-        $response = $this->client->request( $i_stMethod, $i_stPath, $rRequest );
 
         if ( 200 !== $response->getStatusCode() && ! $i_bAllowFailure ) {
-            throw new RuntimeException( "HTTP Error for {$i_stPath}: " . $response->getBody()->getContents() );
+            throw new ServerException( "HTTP Error for {$i_stPath}: " . $response->getBody()->getContents() );
         }
 
-        return $response->getBody()->getContents();
+        return new Response(
+            $response->getStatusCode(),
+            $response->getHeaders(),
+            $response->getBody()
+        );
     }
 
 
-    public function get( string $i_stPath ) : string {
-        return $this->request( 'GET', $i_stPath );
+    public function get( string $i_stPath, bool $i_bAllowFailure = false ) : Response {
+        return $this->request( 'GET', $i_stPath, i_bAllowFailure: $i_bAllowFailure );
     }
 
 
     public function post( string $i_stPath, string $i_stBody, string $i_stContentType,
-                          bool $i_bAllowFailure = false ) : string {
+                          bool $i_bAllowFailure = false ) : Response {
         return $this->request( 'POST', $i_stPath, $i_stBody, [ 'Content-Type' => $i_stContentType ], $i_bAllowFailure );
     }
 
 
-    /** @param mixed[] $i_rJson */
-    public function postJson( string $i_stPath, array $i_rJson,
-                              bool $i_bAllowFailure = false ) : string {
-        return $this->post( $i_stPath, Json::encode( $i_rJson ), 'application/json', $i_bAllowFailure );
-    }
-
-
     /**
-     * @param mixed[] $i_rJSON
+     * @param string $i_stPath
+     * @param array $i_rJson
+     * @param string $i_stContentType
+     * @param bool $i_bAllowFailure
+     * @return Response
+     * @throws JsonException
      */
-    public function postJsonToJson( string $i_stPath, array $i_rJSON,
-                                    bool $i_bAllowFailure = false ) : mixed {
-        $stResponse = $this->postJson( $i_stPath, $i_rJSON, $i_bAllowFailure );
-        return Json::decode( $stResponse );
+    public function postJson( string $i_stPath, array $i_rJson,
+                              string $i_stContentType = 'application/json',
+                              bool $i_bAllowFailure = false ) : Response {
+        return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType, $i_bAllowFailure );
     }
 
 
-    public function status() : int {
-        if ( null === $this->nuStatus ) {
-            throw new RuntimeException( 'No status available yet.' );
-        }
-        return $this->nuStatus;
-    }
-
-
-    public static function dummy() : void {
+    public static function withGuzzle( string $i_stBaseURI, float $i_fTimeout = 5.0 ) : self {
         $client = new Client([
-           'base_uri' => 'http://localhost:8080',
-           'timeout' => 5.0
+            'base_uri' => $i_stBaseURI,
+            'timeout' => $i_fTimeout,
         ]);
-        $rRequest = [
-            'content' => 'This is a test.',
-        ];
-        $stRequest = json_encode( $rRequest );
-        $response = $client->request('POST', '/tokenize', [
-            'body' => $stRequest,
-            'headers' => [
-                'Content-Type' => 'application/json',
-            ],
-        ]);
-        assert( 200 === $response->getStatusCode() );
-        $stResponse = $response->getBody()->getContents();
-        var_dump( $stResponse );
+        return new self( $client, $i_stBaseURI );
     }
 
 
