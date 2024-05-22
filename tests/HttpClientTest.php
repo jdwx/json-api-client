@@ -10,7 +10,7 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use JDWX\JsonApiClient\HttpClient;
-use JDWX\JsonApiClient\ServerException;
+use JDWX\JsonApiClient\HTTPException;
 use JDWX\JsonApiClient\TransportException;
 use PHPUnit\Framework\TestCase;
 
@@ -39,7 +39,7 @@ class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http, 'https://www.example.com/' );
-        self::expectException( ServerException::class );
+        self::expectException( HTTPException::class );
         $cli->get( '/foo' );
     }
 
