@@ -8,9 +8,10 @@ namespace JDWX\JsonApiClient;
 
 
 use Psr\Http\Message\StreamInterface;
+use Stringable;
 
 
-class Response {
+class Response implements Stringable {
 
 
     private ?string $nstBody = null;
@@ -21,6 +22,21 @@ class Response {
     /** @param array<string, list<string>> $rHeaders */
     public function __construct( private readonly int    $uStatus, private readonly array $rHeaders,
                                  private readonly StreamInterface $smBody ) {
+    }
+
+
+    public function __toString() : string {
+        $stOut = "status: {$this->uStatus}\n";
+        foreach ( $this->rHeaders as $stName => $rValues ) {
+            $stOut .= "$stName: " . implode( ', ', $rValues ) . "\n";
+        }
+        $stOut .= "\n";
+        if ( ! is_string( $this->nstBody ) && $this->bBodyRead ) {
+            $stOut .= '[Body not available]';
+        } else {
+            $stOut .= $this->body();
+        }
+        return $stOut;
     }
 
 

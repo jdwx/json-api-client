@@ -107,4 +107,22 @@ class ResponseTest extends TestCase {
     }
 
 
+    public function testToString() : void {
+        $mts = new MyTestStream( 'baz' );
+        $rsp = new Response( 12345, [ 'foo' => [ 'bar', 'qux' ] ], $mts );
+        $stResponse = "status: 12345\nfoo: bar, qux\n\nbaz";
+        self::assertEquals( $stResponse, (string) $rsp );
+    }
+
+
+    public function testToStringForBodyAlreadyGone() : void {
+        $mts = new MyTestStream( 'baz' );
+        $rsp = new Response( 12345, [ 'foo' => [ 'bar', 'qux' ] ], $mts );
+        $rsp->streamBody( 1024 );
+        $rsp->streamBody( 1024 );
+        $stResponse = "status: 12345\nfoo: bar, qux\n\n[Body not available]";
+        self::assertEquals( $stResponse, (string) $rsp );
+    }
+
+
 }
