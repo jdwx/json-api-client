@@ -27,7 +27,7 @@ readonly class HttpClient {
 
 
     /** @param array<string, string> $i_rHeaders */
-    private function request( string $i_stMethod, string $i_stPath,
+    public function request( string $i_stMethod, string $i_stPath,
                               ?string $i_nstBody = null, array $i_rHeaders = [],
                               bool $i_bAllowFailure = false ) : Response {
         $uri = $this->baseURI->withPath( $i_stPath );
