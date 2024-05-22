@@ -42,8 +42,9 @@ readonly class HttpClient {
             );
         }
 
-        if ( 200 !== $response->getStatusCode() && ! $i_bAllowFailure ) {
-            throw new ServerException( "HTTP Error for {$i_stPath}: " . $response->getBody()->getContents() );
+        $uStatus = $response->getStatusCode();
+        if ( 200 !== $uStatus && ! $i_bAllowFailure ) {
+            throw new ServerException( "HTTP Error {$uStatus} for {$i_stPath}: " . $response->getBody()->getContents() );
         }
 
         return new Response(
