@@ -26,11 +26,18 @@ readonly class HttpClient {
                               ?string $i_nstBody = null, array $i_rHeaders = [],
                               bool $i_bAllowFailure = false ) : Response {
         $req = new Request( $i_stMethod, $i_stPath, $i_rHeaders, $i_nstBody );
+        return $this->sendRequest( $req, $i_bAllowFailure );
+    }
+
+
+    public function sendRequest( Request $req, bool $i_bAllowFailure = false ) : Response {
         try {
             $response = $this->client->sendRequest( $req );
         } catch ( Throwable $ex ) {
+            $stMethod = $req->getMethod();
+            $stPath = $req->getUri();
             throw new TransportException(
-                "Transport Error for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
+                "Transport Error for {$stMethod} {$stPath}: " . $ex->getMessage(),
                 $ex->getCode(),
                 $ex
             );
@@ -39,8 +46,10 @@ readonly class HttpClient {
         $uStatus = $response->getStatusCode();
 		$uFirst = intval( $uStatus / 100 );
         if ( 2 !== $uFirst && ! $i_bAllowFailure ) {
+            $stMethod = $req->getMethod();
+            $stPath = $req->getUri();
 			$stBody = $response->getBody()->getContents() ?: '(no body)';
-            throw new HTTPException( "HTTP Error {$uStatus} for {$i_stPath}: " . $stBody );
+            throw new HTTPException( "HTTP Error {$uStatus} for {$stMethod} {$stPath}: " . $stBody );
         }
 
         return new Response(
