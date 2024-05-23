@@ -150,6 +150,32 @@ class ResponseTest extends TestCase {
     }
 
 
+    public function testIsRedirect() : void {
+        $mts = new MyTestStream( 'foo' );
+        $rsp = new Response( 301, [ 'location' => [ 'http://example.com' ] ], $mts );
+        self::assertTrue( $rsp->isRedirect() );
+
+        $rsp = new Response( 200, [ 'location' => [ 'http://example.com' ] ], $mts );
+        self::assertFalse( $rsp->isRedirect() );
+
+        $rsp = new Response( 500, [], $mts );
+        self::assertFalse( $rsp->isRedirect() );
+    }
+
+
+    public function testIsSuccess() : void {
+        $mts = new MyTestStream( 'foo' );
+        $rsp = new Response( 200, [], $mts );
+        self::assertTrue( $rsp->isSuccess() );
+
+        $rsp = new Response( 301, [ 'location' => [ 'http://example.com' ] ], $mts );
+        self::assertFalse( $rsp->isSuccess() );
+
+        $rsp = new Response( 500, [], $mts );
+        self::assertFalse( $rsp->isSuccess() );
+    }
+
+
     public function testJson() : void {
         $mts = new MyTestStream( '{"foo":"bar"}' );
         $rsp = new Response( 12345, [], $mts );

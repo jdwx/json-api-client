@@ -161,6 +161,16 @@ class Response implements Stringable {
     }
 
 
+    public function isRedirect() : bool {
+        return 3 === intval( $this->uStatus / 100 );
+    }
+
+
+    public function isSuccess() : bool {
+        return 2 === intval( $this->uStatus / 100 );
+    }
+
+
     public function streamBody( int $i_uLength ) : ?string {
         if ( ! $this->smBody->isReadable() ) {
             throw new RuntimeException( 'Stream is not readable' );
