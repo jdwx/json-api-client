@@ -72,6 +72,84 @@ class ResponseTest extends TestCase {
     }
 
 
+    public function testIsContentType() : void {
+        $mts = new MyTestStream( 'foo' );
+        $rsp = new Response( 12345, [ 'content-type' => [ 'text/plain' ] ], $mts );
+        self::assertTrue( $rsp->isContentType( 'text', 'plain' ) );
+        self::assertTrue( $rsp->isContentType( 'text/plain' ) );
+        self::assertFalse( $rsp->isContentType( 'text', 'html' ) );
+        self::assertFalse( $rsp->isContentType( 'text/plainx' ) );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'text/plain; charset=utf-8' ] ], $mts );
+        self::assertTrue( $rsp->isContentType( 'text', 'plain' ) );
+        self::assertTrue( $rsp->isContentType( 'text/plain' ) );
+        self::assertFalse( $rsp->isContentType( 'text', 'html' ) );
+        self::assertFalse( $rsp->isContentType( 'text/plainx' ) );
+
+        $rsp = new Response( 12345, [], $mts );
+        self::assertFalse( $rsp->isContentType( 'text', 'plain' ) );
+    }
+
+
+    public function testIsContentTypeLoose() : void {
+        $mts = new MyTestStream( 'foo' );
+        $rsp = new Response( 12345, [ 'content-type' => [ 'text/plain' ] ], $mts );
+        self::assertTrue( $rsp->isContentTypeLoose( 'text', 'plain' ) );
+        self::assertFalse( $rsp->isContentTypeLoose( 'text', 'plainx' ) );
+        self::assertFalse( $rsp->isContentTypeLoose( 'text', 'html' ) );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'text/plain; charset=utf-8' ] ], $mts );
+        self::assertTrue( $rsp->isContentTypeLoose( 'text', 'plain' ) );
+        self::assertFalse( $rsp->isContentTypeLoose( 'text', 'plainx' ) );
+        self::assertFalse( $rsp->isContentTypeLoose( 'text', 'html' ) );
+
+        $rsp = new Response( 12345, [], $mts );
+        self::assertFalse( $rsp->isContentTypeLoose( 'text', 'plain' ) );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'text/plain+json' ] ], $mts );
+        self::assertTrue( $rsp->isContentTypeLoose( 'text', 'plain' ) );
+        self::assertTrue( $rsp->isContentTypeLoose( 'text', 'json' ) );
+        self::assertFalse( $rsp->isContentTypeLoose( 'text', 'jsonx' ) );
+
+    }
+
+
+    public function testIsContentTypeSubtype() : void {
+        $mts = new MyTestStream( 'foo' );
+        $rsp = new Response( 12345, [ 'content-type' => [ 'text/plain' ] ], $mts );
+        self::assertTrue( $rsp->isContentTypeSubtype( 'plain' ) );
+        self::assertFalse( $rsp->isContentTypeSubtype( 'html' ) );
+        self::assertFalse( $rsp->isContentTypeSubtype( 'plainx' ) );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'text/plain; charset=utf-8' ] ], $mts );
+        self::assertTrue( $rsp->isContentTypeSubtype( 'plain' ) );
+        self::assertFalse( $rsp->isContentTypeSubtype( 'html' ) );
+
+        $rsp = new Response( 12345, [], $mts );
+        self::assertFalse( $rsp->isContentTypeSubtype( 'plain' ) );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'foo-bar' ] ], $mts );
+        self::assertFalse( $rsp->isContentTypeSubtype( 'plain' ) );
+    }
+
+
+    public function testIsContentTypeType() : void {
+        $mts = new MyTestStream( 'foo' );
+        $rsp = new Response( 12345, [ 'content-type' => [ 'text/plain' ] ], $mts );
+        self::assertTrue( $rsp->isContentTypeType( 'text' ) );
+        self::assertFalse( $rsp->isContentTypeType( 'text/plain' ) );
+        self::assertFalse( $rsp->isContentTypeType( 'text/html' ) );
+        self::assertFalse( $rsp->isContentTypeType( 'text/plainx' ) );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'text/plain; charset=utf-8' ] ], $mts );
+        self::assertTrue( $rsp->isContentTypeType( 'text' ) );
+        self::assertFalse( $rsp->isContentTypeType( 'text/plain' ) );
+
+        $rsp = new Response( 12345, [], $mts );
+        self::assertFalse( $rsp->isContentTypeType( 'text' ) );
+    }
+
+
     public function testJson() : void {
         $mts = new MyTestStream( '{"foo":"bar"}' );
         $rsp = new Response( 12345, [], $mts );

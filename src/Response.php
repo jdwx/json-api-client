@@ -69,6 +69,16 @@ class Response implements Stringable {
     }
 
 
+    public function getBareContentType() : ?string {
+        $nstType = $this->getOneHeader( 'content-type' );
+        if ( is_null( $nstType ) ) {
+            return null;
+        }
+        $r = explode( ';', $nstType );
+        return trim( $r[ 0 ] );
+    }
+
+
     /** @return list<string>|null */
     public function getHeader( string $i_stName ) : ?array {
         $i_stName = strtolower( $i_stName );
@@ -99,6 +109,45 @@ class Response implements Stringable {
             return $nstOut;
         }
         throw new RuntimeException( "No header found for {$i_stName}" );
+    }
+
+
+    public function isContentType( string $i_stType, ?string $i_stSubtype = null ) : bool {
+        $nstType = $this->getBareContentType();
+        if ( is_null( $nstType ) ) {
+            return false;
+        }
+        if ( is_string( $i_stSubtype ) ) {
+            $i_stType .= '/' . $i_stSubtype;
+        }
+        return $nstType === $i_stType;
+    }
+
+    public function isContentTypeLoose( string $i_stType, string $i_stSubtype ) : bool {
+        return $this->isContentTypeType( $i_stType ) && $this->isContentTypeSubtype( $i_stSubtype );
+    }
+
+
+    public function isContentTypeSubtype( string $i_stSubtype ) : bool {
+        $nstType = $this->getBareContentType();
+        if ( is_null( $nstType ) ) {
+            return false;
+        }
+        $r = explode( '/', $nstType );
+        if ( 2 !== count( $r ) ) {
+            return false;
+        }
+        $r = explode( '+', $r[ 1 ] );
+        return in_array( $i_stSubtype, $r );
+    }
+
+
+    public function isContentTypeType( string $i_stType ) : bool {
+        $nstType = $this->getBareContentType();
+        if ( is_null( $nstType ) ) {
+            return false;
+        }
+        return str_starts_with( $nstType, $i_stType . '/' );
     }
 
 
