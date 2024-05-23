@@ -30,8 +30,7 @@ readonly class HttpClient {
     public function request( string $i_stMethod, string $i_stPath,
                               ?string $i_nstBody = null, array $i_rHeaders = [],
                               bool $i_bAllowFailure = false ) : Response {
-        $uri = $this->baseURI->withPath( $i_stPath );
-        $req = new Request( $i_stMethod, $uri, $i_rHeaders, $i_nstBody );
+        $req = new Request( $i_stMethod, $i_stPath, $i_rHeaders, $i_nstBody );
         try {
             $response = $this->client->sendRequest( $req );
         } catch ( Throwable $ex ) {
@@ -43,8 +42,10 @@ readonly class HttpClient {
         }
 
         $uStatus = $response->getStatusCode();
-        if ( 200 !== $uStatus && ! $i_bAllowFailure ) {
-            throw new HTTPException( "HTTP Error {$uStatus} for {$i_stPath}: " . $response->getBody()->getContents() );
+		$uFirst = intval( $uStatus / 100 );
+        if ( 2 !== $uFirst && ! $i_bAllowFailure ) {
+			$stBody = $response->getBody()->getContents() ?: "(no body)";
+            throw new HTTPException( "HTTP Error {$uStatus} for {$i_stPath}: " . $stBody );
         }
 
         return new Response(
