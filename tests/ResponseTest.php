@@ -32,6 +32,13 @@ class ResponseTest extends TestCase {
     }
 
 
+    public function testGetHeaderForWrongCase() : void {
+        $mts = new MyTestStream( 'foo' );
+        $rsp = new Response( 12345, [ 'foo' => [ 'bar', 'baz' ] ], $mts );
+        self::assertEquals( [ 'bar', 'baz' ], $rsp->getHeader( 'Foo' ) );
+    }
+
+
     public function testGetOneHeader() : void {
         $mts = new MyTestStream( 'foo' );
         $rsp = new Response( 12345, [ 'foo' => [ 'bar' ] ], $mts );

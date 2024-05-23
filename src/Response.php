@@ -18,10 +18,17 @@ class Response implements Stringable {
 
     private bool $bBodyRead = false;
 
+    private readonly array $rHeaders;
+
 
     /** @param array<string, list<string>> $rHeaders */
-    public function __construct( private readonly int    $uStatus, private readonly array $rHeaders,
+    public function __construct( private readonly int    $uStatus, array $rHeaders,
                                  private readonly StreamInterface $smBody ) {
+        $r = [];
+        foreach ( $rHeaders as $stName => $xValue ) {
+            $r[ strtolower( $stName ) ] = $xValue;
+        }
+        $this->rHeaders = $r;
     }
 
 
@@ -59,6 +66,7 @@ class Response implements Stringable {
 
     /** @return list<string>|null */
     public function getHeader( string $i_stName ) : ?array {
+        $i_stName = strtolower( $i_stName );
         if ( ! array_key_exists( $i_stName, $this->rHeaders ) ) {
             return null;
         }
