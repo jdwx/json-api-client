@@ -20,6 +20,8 @@ class Response implements Stringable {
 
     private readonly array $rHeaders;
 
+    private mixed $json = null;
+
 
     /** @param array<string, list<string>> $rHeaders */
     public function __construct( private readonly int    $uStatus, array $rHeaders,
@@ -60,7 +62,20 @@ class Response implements Stringable {
 
 
     public function json() : mixed {
-        return Json::decode( $this->body() );
+        if ( is_null( $this->json ) ) {
+            $this->json = Json::decode( $this->body() );
+        }
+        return $this->json;
+    }
+
+
+    public function getBareContentType() : ?string {
+        $nstType = $this->getOneHeader( 'content-type' );
+        if ( is_null( $nstType ) ) {
+            return null;
+        }
+        $r = explode( ';', $nstType );
+        return trim( $r[ 0 ] );
     }
 
 
@@ -97,6 +112,45 @@ class Response implements Stringable {
     }
 
 
+    public function isContentType( string $i_stType, ?string $i_stSubtype = null ) : bool {
+        $nstType = $this->getBareContentType();
+        if ( is_null( $nstType ) ) {
+            return false;
+        }
+        if ( is_string( $i_stSubtype ) ) {
+            $i_stType .= '/' . $i_stSubtype;
+        }
+        return $nstType === $i_stType;
+    }
+
+    public function isContentTypeLoose( string $i_stType, string $i_stSubtype ) : bool {
+        return $this->isContentTypeType( $i_stType ) && $this->isContentTypeSubtype( $i_stSubtype );
+    }
+
+
+    public function isContentTypeSubtype( string $i_stSubtype ) : bool {
+        $nstType = $this->getBareContentType();
+        if ( is_null( $nstType ) ) {
+            return false;
+        }
+        $r = explode( '/', $nstType );
+        if ( 2 !== count( $r ) ) {
+            return false;
+        }
+        $r = explode( '+', $r[ 1 ] );
+        return in_array( $i_stSubtype, $r );
+    }
+
+
+    public function isContentTypeType( string $i_stType ) : bool {
+        $nstType = $this->getBareContentType();
+        if ( is_null( $nstType ) ) {
+            return false;
+        }
+        return str_starts_with( $nstType, $i_stType . '/' );
+    }
+
+
     public function hasHeader( string $i_stName ) : bool {
         return array_key_exists( $i_stName, $this->rHeaders );
     }
@@ -104,6 +158,16 @@ class Response implements Stringable {
 
     public function status() : int {
         return $this->uStatus;
+    }
+
+
+    public function isRedirect() : bool {
+        return 3 === intval( $this->uStatus / 100 );
+    }
+
+
+    public function isSuccess() : bool {
+        return 2 === intval( $this->uStatus / 100 );
     }
 
 
