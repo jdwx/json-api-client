@@ -9,7 +9,6 @@ namespace JDWX\JsonApiClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Uri;
 use JsonException;
 use Psr\Http\Client\ClientInterface;
 use Throwable;
@@ -18,11 +17,7 @@ use Throwable;
 readonly class HttpClient {
 
 
-    private Uri $baseURI;
-
-
-    public function __construct( private ClientInterface $client, string $i_stBaseURI ) {
-        $this->baseURI = new Uri( $i_stBaseURI );
+    public function __construct( private ClientInterface $client ) {
     }
 
 
@@ -44,7 +39,7 @@ readonly class HttpClient {
         $uStatus = $response->getStatusCode();
 		$uFirst = intval( $uStatus / 100 );
         if ( 2 !== $uFirst && ! $i_bAllowFailure ) {
-			$stBody = $response->getBody()->getContents() ?: "(no body)";
+			$stBody = $response->getBody()->getContents() ?: '(no body)';
             throw new HTTPException( "HTTP Error {$uStatus} for {$i_stPath}: " . $stBody );
         }
 
@@ -82,12 +77,14 @@ readonly class HttpClient {
     }
 
 
-    public static function withGuzzle( string $i_stBaseURI, float $i_fTimeout = 5.0 ) : self {
-        $client = new Client([
-            'base_uri' => $i_stBaseURI,
+    public static function withGuzzle( ?string $i_stBaseURI = null, float $i_fTimeout = 5.0 ) : self {
+        $r = [
             'timeout' => $i_fTimeout,
-        ]);
-        return new self( $client, $i_stBaseURI );
+        ];
+        if ( is_string( $i_stBaseURI ) ) {
+            $r[ 'base_uri' ] = $i_stBaseURI;
+        }
+        return new self( new Client( $r ) );
     }
 
 
