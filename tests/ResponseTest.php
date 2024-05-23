@@ -77,6 +77,9 @@ class ResponseTest extends TestCase {
         $rsp = new Response( 12345, [], $mts );
         self::assertEquals( [ 'foo' => 'bar' ], $rsp->json() );
 
+        # json() is repeatable.
+        self::assertEquals( [ 'foo' => 'bar' ], $rsp->json() );
+
         $mts = new MyTestStream( 'foo' );
         $rsp = new Response( 12345, [], $mts );
         $this->expectException( JsonException::class );

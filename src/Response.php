@@ -20,6 +20,8 @@ class Response implements Stringable {
 
     private readonly array $rHeaders;
 
+    private mixed $json = null;
+
 
     /** @param array<string, list<string>> $rHeaders */
     public function __construct( private readonly int    $uStatus, array $rHeaders,
@@ -60,7 +62,10 @@ class Response implements Stringable {
 
 
     public function json() : mixed {
-        return Json::decode( $this->body() );
+        if ( is_null( $this->json ) ) {
+            $this->json = Json::decode( $this->body() );
+        }
+        return $this->json;
     }
 
 
