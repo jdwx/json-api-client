@@ -38,9 +38,15 @@ readonly class HttpClient {
 
         $uStatus = $response->getStatusCode();
 		$uFirst = intval( $uStatus / 100 );
+		$rHeaders = $response->getHeaders();
+		$body = $response->getBody();
         if ( 2 !== $uFirst && ! $i_bAllowFailure ) {
-			$stBody = $response->getBody()->getContents() ?: '(no body)';
-            throw new HTTPException( "HTTP Error {$uStatus} for {$i_stPath}: " . $stBody );
+			$stBody = $body->getContents() ?: '(no body)';
+			$stHeaders = "";
+			foreach ( $rHeaders as $stHeader => $xValue ) {
+				$stHeaders .= "{$stHeader}: " . implode( ", ", $xValue ) . "\n";
+			}
+            throw new HTTPException( "HTTP Error {$uStatus} for {$i_stPath}: {$stHeaders} " . $stBody );
         }
 
         return new Response(
