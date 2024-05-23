@@ -26,7 +26,7 @@ class HttpClientTest extends TestCase {
             new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
         ] );
         $http = new Client( [ 'handler' => $mock ] );
-        $cli = new HttpClient( $http, 'https://www.example.com/' );
+        $cli = new HttpClient( $http );
         $rsp = $cli->get( '/foo' );
         static::assertEquals( 200, $rsp->status() );
         static::assertEquals( 'baz', $rsp->body() );
@@ -38,7 +38,7 @@ class HttpClientTest extends TestCase {
             new Response( 404, [ 'Foo' => 'Bar' ], 'baz' ),
         ] );
         $http = new Client( [ 'handler' => $mock ] );
-        $cli = new HttpClient( $http, 'https://www.example.com/' );
+        $cli = new HttpClient( $http );
         self::expectException( HTTPException::class );
         $cli->get( '/foo' );
     }
@@ -49,7 +49,7 @@ class HttpClientTest extends TestCase {
             new Response( 404, [ 'Foo' => 'Bar' ], 'baz' ),
         ] );
         $http = new Client( [ 'handler' => $mock ] );
-        $cli = new HttpClient( $http, 'https://www.example.com/' );
+        $cli = new HttpClient( $http );
         $rsp = $cli->get( '/foo', true );
         static::assertEquals( 404, $rsp->status() );
         static::assertEquals( 'baz', $rsp->body() );
@@ -61,7 +61,7 @@ class HttpClientTest extends TestCase {
             new RequestException( 'foo', new Request( 'GET', 'https://www.example.com/foo' ) )
         ] );
         $http = new Client( [ 'handler' => $mock ] );
-        $cli = new HttpClient( $http, 'https://www.example.com/' );
+        $cli = new HttpClient( $http );
         self::expectException( TransportException::class );
         $cli->get( '/foo' );
     }
@@ -72,7 +72,7 @@ class HttpClientTest extends TestCase {
             new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
         ] );
         $http = new Client( [ 'handler' => $mock ] );
-        $cli = new HttpClient( $http, 'https://www.example.com/' );
+        $cli = new HttpClient( $http );
         $rsp = $cli->post( '/foo', 'body', 'text/plain' );
         static::assertEquals( 200, $rsp->status() );
         static::assertEquals( 'baz', $rsp->body() );
@@ -84,7 +84,7 @@ class HttpClientTest extends TestCase {
             new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
         ] );
         $http = new Client( [ 'handler' => $mock ] );
-        $cli = new HttpClient( $http, 'https://www.example.com/' );
+        $cli = new HttpClient( $http );
         $rsp = $cli->postJson( '/foo', [ 'a' => 1, 'b' => 2 ] );
         static::assertEquals( 200, $rsp->status() );
         static::assertEquals( 'baz', $rsp->body() );
