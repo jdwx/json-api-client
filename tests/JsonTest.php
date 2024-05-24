@@ -25,7 +25,7 @@ class JsonTest extends TestCase {
         $stJson = '5';
         static::assertSame( 5, Json::decode( $stJson ) );
 
-        $stJson = "////nope///";
+        $stJson = '////nope///';
         self::expectException( JsonException::class );
         Json::decode( $stJson );
     }
