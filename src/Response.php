@@ -151,6 +151,11 @@ class Response implements Stringable {
     }
 
 
+    public function isJson() : bool {
+        return $this->isContentTypeLoose( 'application', 'json' );
+    }
+
+
     public function hasHeader( string $i_stName ) : bool {
         return array_key_exists( $i_stName, $this->rHeaders );
     }

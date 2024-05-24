@@ -150,12 +150,31 @@ class ResponseTest extends TestCase {
     }
 
 
+    public function testIsJson() : void {
+        $mts = new MyTestStream( '{"foo":"bar"}' );
+        $rsp = new Response( 12345, [ 'content-type' => [ 'application/json' ] ], $mts );
+        self::assertTrue( $rsp->isJson() );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'application/json; charset=utf-8' ] ], $mts );
+        self::assertTrue( $rsp->isJson() );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'application/json+foo' ] ], $mts );
+        self::assertTrue( $rsp->isJson() );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'application/json+foo; charset=utf-8' ] ], $mts );
+        self::assertTrue( $rsp->isJson() );
+
+        $rsp = new Response( 12345, [ 'content-type' => [ 'application/jsonx' ] ], $mts );
+        self::assertFalse( $rsp->isJson() );
+    }
+
+
     public function testIsRedirect() : void {
         $mts = new MyTestStream( 'foo' );
-        $rsp = new Response( 301, [ 'location' => [ 'http://example.com' ] ], $mts );
+        $rsp = new Response( 301, [ 'location' => [ 'https://example.com' ] ], $mts );
         self::assertTrue( $rsp->isRedirect() );
 
-        $rsp = new Response( 200, [ 'location' => [ 'http://example.com' ] ], $mts );
+        $rsp = new Response( 200, [ 'location' => [ 'https://example.com' ] ], $mts );
         self::assertFalse( $rsp->isRedirect() );
 
         $rsp = new Response( 500, [], $mts );
@@ -168,7 +187,7 @@ class ResponseTest extends TestCase {
         $rsp = new Response( 200, [], $mts );
         self::assertTrue( $rsp->isSuccess() );
 
-        $rsp = new Response( 301, [ 'location' => [ 'http://example.com' ] ], $mts );
+        $rsp = new Response( 301, [ 'location' => [ 'https://example.com' ] ], $mts );
         self::assertFalse( $rsp->isSuccess() );
 
         $rsp = new Response( 500, [], $mts );
