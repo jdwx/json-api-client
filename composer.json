@@ -1,5 +1,7 @@
 {
   "name": "jdwx/json-api-client",
+  "description": "A simple JSON API client and supporting tools.",
+  "license": "MIT",
   "autoload": {
     "psr-4": {
       "JDWX\\JsonApiClient\\": "src/"
