@@ -8,54 +8,53 @@ namespace JDWX\JsonApiClient;
 
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Request;
 use JsonException;
-use Psr\Http\Client\ClientInterface;
 use Throwable;
 
 
 readonly class HttpClient {
 
 
-    public function __construct( private ClientInterface $client ) {
+    public function __construct( private Client $client ) {
     }
 
 
     /** @param array<string, string> $i_rHeaders */
-    public function request( string $i_stMethod, string $i_stPath,
-                              ?string $i_nstBody = null, array $i_rHeaders = [],
-                              bool $i_bAllowFailure = false ) : Response {
-        $req = new Request( $i_stMethod, $i_stPath, $i_rHeaders, $i_nstBody );
-        return $this->sendRequest( $req, $i_bAllowFailure );
-    }
-
-
-    public function sendRequest( Request $req, bool $i_bAllowFailure = false ) : Response {
+    public function request( string  $i_stMethod, string $i_stPath,
+                             ?string $i_nstBody = null, array $i_rHeaders = [],
+                             bool    $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
         try {
-            $response = $this->client->sendRequest( $req );
+            $rOptions = [];
+            if ( is_string( $i_nstBody ) ) {
+                $rOptions[ 'body' ] = $i_nstBody;
+            }
+            if ( ! empty( $i_rHeaders ) ) {
+                $rOptions[ 'headers' ] = $i_rHeaders;
+            }
+            if ( $i_bStream ) {
+                $rOptions[ 'stream' ] = true;
+            }
+
+            $response = $this->client->request( $i_stMethod, $i_stPath, $rOptions );
         } catch ( Throwable $ex ) {
-            $stMethod = $req->getMethod();
-            $stPath = $req->getUri();
             throw new TransportException(
-                "Transport Error for {$stMethod} {$stPath}: " . $ex->getMessage(),
+                "Transport Error for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
                 $ex->getCode(),
                 $ex
             );
         }
 
         $uStatus = $response->getStatusCode();
-		$uFirst = intval( $uStatus / 100 );
-		$rHeaders = $response->getHeaders();
-		$body = $response->getBody();
+        $uFirst = intval( $uStatus / 100 );
+        $rHeaders = $response->getHeaders();
+        $body = $response->getBody();
         if ( 2 !== $uFirst && ! $i_bAllowFailure ) {
-            $stMethod = $req->getMethod();
-            $stPath = $req->getUri();
             $stBody = $body->getContents() ?: '(no body)';
             $stHeaders = '';
             foreach ( $rHeaders as $stHeader => $xValue ) {
                 $stHeaders .= "{$stHeader}: " . implode( ', ', $xValue ) . "\n";
             }
-            throw new HTTPException( "HTTP Error {$uStatus} for {$stMethod} {$stPath} [{$stHeaders}]: " . $stBody );
+            throw new HTTPException( "HTTP Error {$uStatus} for {$i_stMethod} {$i_stPath} [{$stHeaders}]: " . $stBody );
         }
 
         return new Response(
@@ -72,7 +71,7 @@ readonly class HttpClient {
 
 
     public function post( string $i_stPath, string $i_stBody, string $i_stContentType,
-                          bool $i_bAllowFailure = false ) : Response {
+                          bool   $i_bAllowFailure = false ) : Response {
         return $this->request( 'POST', $i_stPath, $i_stBody, [ 'Content-Type' => $i_stContentType ], $i_bAllowFailure );
     }
 
@@ -87,7 +86,7 @@ readonly class HttpClient {
      */
     public function postJson( string $i_stPath, array $i_rJson,
                               string $i_stContentType = 'application/json',
-                              bool $i_bAllowFailure = false ) : Response {
+                              bool   $i_bAllowFailure = false ) : Response {
         return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType, $i_bAllowFailure );
     }
 
