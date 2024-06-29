@@ -65,29 +65,33 @@ readonly class HttpClient {
     }
 
 
-    public function get( string $i_stPath, bool $i_bAllowFailure = false ) : Response {
-        return $this->request( 'GET', $i_stPath, i_bAllowFailure: $i_bAllowFailure );
+    public function get( string $i_stPath, bool $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+        return $this->request( 'GET', $i_stPath, i_bAllowFailure: $i_bAllowFailure, i_bStream: $i_bStream );
     }
 
 
     public function post( string $i_stPath, string $i_stBody, string $i_stContentType,
-                          bool   $i_bAllowFailure = false ) : Response {
-        return $this->request( 'POST', $i_stPath, $i_stBody, [ 'Content-Type' => $i_stContentType ], $i_bAllowFailure );
+                          bool   $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+        return $this->request( 'POST', $i_stPath, $i_stBody,
+            [ 'Content-Type' => $i_stContentType ], $i_bAllowFailure, $i_bStream
+        );
     }
 
 
     /**
      * @param string $i_stPath
-     * @param mixed[] $i_rJson
-     * @param string $i_stContentType
-     * @param bool $i_bAllowFailure
+     * @param mixed[] $i_rJson JSON to send as the request body.
+     * @param string $i_stContentType Content type of the request body.
+     * @param bool $i_bAllowFailure If true, don't throw an exception on non-2xx status.
+     * @param bool $i_bStream If true, don't wait for the entire response body.
      * @return Response
      * @throws JsonException
      */
     public function postJson( string $i_stPath, array $i_rJson,
                               string $i_stContentType = 'application/json',
-                              bool   $i_bAllowFailure = false ) : Response {
-        return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType, $i_bAllowFailure );
+                              bool   $i_bAllowFailure = false,
+                              bool   $i_bStream = false ) : Response {
+        return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType, $i_bAllowFailure, $i_bStream );
     }
 
 
