@@ -29,7 +29,11 @@ final class Json {
      * @throws JsonException
      */
     public static function decode( string $i_stJson ) : mixed {
-        return json_decode( $i_stJson, true, self::$uDepth, JSON_THROW_ON_ERROR );
+        try {
+            return json_decode( $i_stJson, true, self::$uDepth, JSON_THROW_ON_ERROR );
+        } catch ( JsonException $e ) {
+            throw new JsonException( "Failed to decode JSON: {$i_stJson}", 0, $e );
+        }
     }
 
 
@@ -112,6 +116,11 @@ final class Json {
      */
     public static function encode( mixed $i_x ) : string {
         return json_encode( $i_x, JSON_THROW_ON_ERROR, self::$uDepth );
+    }
+
+
+    public static function encodePretty( mixed $i_x ) : string {
+        return json_encode( $i_x, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT, self::$uDepth );
     }
 
 
