@@ -33,6 +33,19 @@ class HttpClientTest extends TestCase {
     }
 
 
+    public function testGetForStream() : void {
+        $mock = new MockHandler( [
+            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
+        ] );
+        $http = new Client( [ 'handler' => $mock ] );
+        $cli = new HttpClient( $http );
+        $rsp = $cli->get( '/foo', i_bStream: true );
+        $st = $rsp->streamBody( 12 );
+        static::assertEquals( 200, $rsp->status() );
+        static::assertEquals( 'baz', $st );
+    }
+
+
     public function testGetWith404Error() : void {
         $mock = new MockHandler( [
             new Response( 404, [ 'Foo' => 'Bar' ], 'baz' ),
@@ -58,7 +71,7 @@ class HttpClientTest extends TestCase {
 
     public function testGetWithFailedRequest() : void {
         $mock = new MockHandler( [
-            new RequestException( 'foo', new Request( 'GET', 'https://www.example.com/foo' ) )
+            new RequestException( 'foo', new Request( 'GET', 'https://www.example.com/foo' ) ),
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );

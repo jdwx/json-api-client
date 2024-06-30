@@ -161,6 +161,21 @@ class JsonTest extends TestCase {
     }
 
 
+    public function testEncodePretty() : void {
+        $r = [
+            'a' => 1,
+            'b' => 2,
+            'c' => [
+                'd' => 3,
+                'e' => 4,
+            ],
+        ];
+        $stJson = Json::encodePretty( $r );
+        $r2 = Json::decode( $stJson );
+        static::assertSame( $r, $r2 );
+    }
+
+
     public function testExpectArray() : void {
         static::assertSame( [ 1, 2 ], Json::expectArray( [ 1, 2 ] ) );
         self::expectException( JsonException::class );
