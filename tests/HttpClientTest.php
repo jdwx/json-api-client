@@ -46,6 +46,31 @@ class HttpClientTest extends TestCase {
     }
 
 
+    public function testSendRequest() : void {
+        $mock = new MockHandler( [
+            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
+        ] );
+        $http = new Client( [ 'handler' => $mock ] );
+        $cli = new HttpClient( $http );
+        $req = new Request( 'GET', 'https://www.example.com/foo' );
+        $rsp = $cli->sendRequest( $req );
+        static::assertEquals( 200, $rsp->status() );
+        static::assertEquals( 'baz', $rsp->body() );
+    }
+
+
+    public function testSendRequestWithFailedRequest() : void {
+        $mock = new MockHandler( [
+            new RequestException( 'foo', new Request( 'GET', 'https://www.example.com/foo' ) ),
+        ] );
+        $http = new Client( [ 'handler' => $mock ] );
+        $cli = new HttpClient( $http );
+        self::expectException( TransportException::class );
+        $req = new Request( 'GET', 'https://www.example.com/foo' );
+        $cli->sendRequest( $req );
+    }
+
+
     public function testGetWith404Error() : void {
         $mock = new MockHandler( [
             new Response( 404, [ 'Foo' => 'Bar' ], 'baz' ),

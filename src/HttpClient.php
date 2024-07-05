@@ -9,6 +9,8 @@ namespace JDWX\JsonApiClient;
 
 use GuzzleHttp\Client;
 use JsonException;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Throwable;
 
 
@@ -44,6 +46,29 @@ readonly class HttpClient {
             );
         }
 
+        return $this->handleResponse( $response, $i_bAllowFailure, $i_stMethod, $i_stPath );
+
+    }
+
+
+    public function sendRequest( RequestInterface $i_request, bool $i_bAllowFailure = false ) : Response {
+        try {
+            $response = $this->client->send( $i_request );
+        } catch ( Throwable $ex ) {
+            throw new TransportException(
+                "Transport Error for {$i_request->getMethod()} {$i_request->getUri()}: " . $ex->getMessage(),
+                $ex->getCode(),
+                $ex
+            );
+        }
+
+        return $this->handleResponse( $response, $i_bAllowFailure, $i_request->getMethod(),
+            $i_request->getUri()->getPath() );
+    }
+
+
+    private function handleResponse( ResponseInterface $response, bool $i_bAllowFailure,
+                                     string            $i_stMethod, string $i_stPath ) : Response {
         $uStatus = $response->getStatusCode();
         $uFirst = intval( $uStatus / 100 );
         $rHeaders = $response->getHeaders();
@@ -58,10 +83,11 @@ readonly class HttpClient {
         }
 
         return new Response(
-            $response->getStatusCode(),
-            $response->getHeaders(),
-            $response->getBody()
+            $uStatus,
+            $rHeaders,
+            $body
         );
+
     }
 
 
