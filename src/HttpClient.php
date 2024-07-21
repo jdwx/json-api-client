@@ -8,6 +8,7 @@ namespace JDWX\JsonApiClient;
 
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use JsonException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -38,6 +39,18 @@ readonly class HttpClient {
             }
 
             $response = $this->client->request( $i_stMethod, $i_stPath, $rOptions );
+        } catch ( RequestException $ex ) {
+            if ( $i_bAllowFailure ) {
+                $response = $ex->getResponse();
+                if ( $response ) {
+                    return $this->handleResponse( $response, $i_bAllowFailure, $i_stMethod, $i_stPath );
+                }
+            }
+            throw new HTTPException(
+                "HTTP Error for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
+                $ex->getCode(),
+                $ex
+            );
         } catch ( Throwable $ex ) {
             throw new TransportException(
                 "Transport Error for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),

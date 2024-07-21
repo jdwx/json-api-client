@@ -100,7 +100,7 @@ class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        self::expectException( TransportException::class );
+        self::expectException( HTTPException::class );
         $cli->get( '/foo' );
     }
 
