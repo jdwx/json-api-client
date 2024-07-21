@@ -40,14 +40,12 @@ readonly class HttpClient {
 
             $response = $this->client->request( $i_stMethod, $i_stPath, $rOptions );
         } catch ( RequestException $ex ) {
-            if ( $i_bAllowFailure ) {
-                $response = $ex->getResponse();
-                if ( $response ) {
-                    return $this->handleResponse( $response, $i_bAllowFailure, $i_stMethod, $i_stPath );
-                }
+            $response = $ex->getResponse();
+            if ( $response ) {
+                return $this->handleResponse( $response, $i_bAllowFailure, $i_stMethod, $i_stPath );
             }
             throw new HTTPException(
-                "HTTP Error for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
+                "HTTP Error without response for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
                 $ex->getCode(),
                 $ex
             );
