@@ -15,10 +15,18 @@ use Psr\Http\Message\ResponseInterface;
 use Throwable;
 
 
-readonly class HttpClient {
+class HttpClient {
 
 
-    public function __construct( private Client $client ) {
+    /** @var array<string, string> $rExtraHeaders */
+    private array $rExtraHeaders = [];
+
+
+    public function __construct( private readonly Client $client ) {}
+
+
+    public function setExtraHeader( string $i_stHeader, string $i_stValue ) : void {
+        $this->rExtraHeaders[ $i_stHeader ] = $i_stValue;
     }
 
 
@@ -26,6 +34,7 @@ readonly class HttpClient {
     public function request( string  $i_stMethod, string $i_stPath,
                              ?string $i_nstBody = null, array $i_rHeaders = [],
                              bool    $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+        $i_rHeaders = array_merge( $this->rExtraHeaders, $i_rHeaders );
         try {
             $rOptions = [];
             if ( is_string( $i_nstBody ) ) {
@@ -102,15 +111,18 @@ readonly class HttpClient {
     }
 
 
-    public function get( string $i_stPath, bool $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
-        return $this->request( 'GET', $i_stPath, i_bAllowFailure: $i_bAllowFailure, i_bStream: $i_bStream );
+    public function get( string $i_stPath, array $i_rHeaders = [],
+                         bool   $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+        return $this->request( 'GET', $i_stPath, i_rHeaders: $i_rHeaders,
+            i_bAllowFailure: $i_bAllowFailure, i_bStream: $i_bStream );
     }
 
 
-    public function post( string $i_stPath, string $i_stBody, string $i_stContentType,
+    public function post( string $i_stPath, string $i_stBody, string $i_stContentType, array $i_rHeaders = [],
                           bool   $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+        $i_rHeaders[ 'Content-Type' ] = $i_stContentType;
         return $this->request( 'POST', $i_stPath, $i_stBody,
-            [ 'Content-Type' => $i_stContentType ], $i_bAllowFailure, $i_bStream
+            $i_rHeaders, $i_bAllowFailure, $i_bStream
         );
     }
 
@@ -119,6 +131,7 @@ readonly class HttpClient {
      * @param string $i_stPath
      * @param mixed[] $i_rJson JSON to send as the request body.
      * @param string $i_stContentType Content type of the request body.
+     * @param array $i_rHeaders Additional headers to send. (As header => value pairs.)
      * @param bool $i_bAllowFailure If true, don't throw an exception on non-2xx status.
      * @param bool $i_bStream If true, don't wait for the entire response body.
      * @return Response
@@ -126,9 +139,11 @@ readonly class HttpClient {
      */
     public function postJson( string $i_stPath, array $i_rJson,
                               string $i_stContentType = 'application/json',
+                              array  $i_rHeaders = [],
                               bool   $i_bAllowFailure = false,
                               bool   $i_bStream = false ) : Response {
-        return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType, $i_bAllowFailure, $i_bStream );
+        return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType,
+            $i_rHeaders, $i_bAllowFailure, $i_bStream );
     }
 
 
