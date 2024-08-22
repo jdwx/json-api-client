@@ -18,6 +18,9 @@ use Throwable;
 class HttpClient {
 
 
+    private bool $bDebug = false;
+
+
     /** @var array<string, string> $rExtraHeaders */
     private array $rExtraHeaders = [];
 
@@ -25,8 +28,50 @@ class HttpClient {
     public function __construct( private readonly Client $client ) {}
 
 
-    public function setExtraHeader( string $i_stHeader, string $i_stValue ) : void {
-        $this->rExtraHeaders[ $i_stHeader ] = $i_stValue;
+    public static function withGuzzle( ?string $i_stBaseURI = null, float $i_fTimeout = 5.0 ) : self {
+        $r = [
+            'timeout' => $i_fTimeout,
+        ];
+        if ( is_string( $i_stBaseURI ) ) {
+            $r[ 'base_uri' ] = $i_stBaseURI;
+        }
+        return new self( new Client( $r ) );
+    }
+
+
+    public function get( string $i_stPath, array $i_rHeaders = [],
+                         bool   $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+        return $this->request( 'GET', $i_stPath, i_rHeaders: $i_rHeaders,
+            i_bAllowFailure: $i_bAllowFailure, i_bStream: $i_bStream );
+    }
+
+
+    public function post( string $i_stPath, string $i_stBody, string $i_stContentType, array $i_rHeaders = [],
+                          bool   $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+        $i_rHeaders[ 'Content-Type' ] = $i_stContentType;
+        return $this->request( 'POST', $i_stPath, $i_stBody,
+            $i_rHeaders, $i_bAllowFailure, $i_bStream
+        );
+    }
+
+
+    /**
+     * @param string $i_stPath
+     * @param mixed[] $i_rJson JSON to send as the request body.
+     * @param string $i_stContentType Content type of the request body.
+     * @param array $i_rHeaders Additional headers to send. (As header => value pairs.)
+     * @param bool $i_bAllowFailure If true, don't throw an exception on non-2xx status.
+     * @param bool $i_bStream If true, don't wait for the entire response body.
+     * @return Response
+     * @throws JsonException
+     */
+    public function postJson( string $i_stPath, array $i_rJson,
+                              string $i_stContentType = 'application/json',
+                              array  $i_rHeaders = [],
+                              bool   $i_bAllowFailure = false,
+                              bool   $i_bStream = false ) : Response {
+        return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType,
+            $i_rHeaders, $i_bAllowFailure, $i_bStream );
     }
 
 
@@ -47,6 +92,16 @@ class HttpClient {
                 $rOptions[ 'stream' ] = true;
             }
 
+            if ( $this->bDebug ) {
+                echo "Request: {$i_stMethod} {$i_stPath}\n";
+                echo "Headers:\n";
+                foreach ( $i_rHeaders as $stHeader => $stValue ) {
+                    echo "  {$stHeader}: {$stValue}\n";
+                }
+                if ( is_string( $i_nstBody ) ) {
+                    echo "Body:\n{$i_nstBody}\n";
+                }
+            }
             $response = $this->client->request( $i_stMethod, $i_stPath, $rOptions );
         } catch ( RequestException $ex ) {
             $response = $ex->getResponse();
@@ -87,6 +142,16 @@ class HttpClient {
     }
 
 
+    public function setDebug( bool $i_b ) : void {
+        $this->bDebug = $i_b;
+    }
+
+
+    public function setExtraHeader( string $i_stHeader, string $i_stValue ) : void {
+        $this->rExtraHeaders[ $i_stHeader ] = $i_stValue;
+    }
+
+
     private function handleResponse( ResponseInterface $response, bool $i_bAllowFailure,
                                      string            $i_stMethod, string $i_stPath ) : Response {
         $uStatus = $response->getStatusCode();
@@ -108,53 +173,6 @@ class HttpClient {
             $body
         );
 
-    }
-
-
-    public function get( string $i_stPath, array $i_rHeaders = [],
-                         bool   $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
-        return $this->request( 'GET', $i_stPath, i_rHeaders: $i_rHeaders,
-            i_bAllowFailure: $i_bAllowFailure, i_bStream: $i_bStream );
-    }
-
-
-    public function post( string $i_stPath, string $i_stBody, string $i_stContentType, array $i_rHeaders = [],
-                          bool   $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
-        $i_rHeaders[ 'Content-Type' ] = $i_stContentType;
-        return $this->request( 'POST', $i_stPath, $i_stBody,
-            $i_rHeaders, $i_bAllowFailure, $i_bStream
-        );
-    }
-
-
-    /**
-     * @param string $i_stPath
-     * @param mixed[] $i_rJson JSON to send as the request body.
-     * @param string $i_stContentType Content type of the request body.
-     * @param array $i_rHeaders Additional headers to send. (As header => value pairs.)
-     * @param bool $i_bAllowFailure If true, don't throw an exception on non-2xx status.
-     * @param bool $i_bStream If true, don't wait for the entire response body.
-     * @return Response
-     * @throws JsonException
-     */
-    public function postJson( string $i_stPath, array $i_rJson,
-                              string $i_stContentType = 'application/json',
-                              array  $i_rHeaders = [],
-                              bool   $i_bAllowFailure = false,
-                              bool   $i_bStream = false ) : Response {
-        return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType,
-            $i_rHeaders, $i_bAllowFailure, $i_bStream );
-    }
-
-
-    public static function withGuzzle( ?string $i_stBaseURI = null, float $i_fTimeout = 5.0 ) : self {
-        $r = [
-            'timeout' => $i_fTimeout,
-        ];
-        if ( is_string( $i_stBaseURI ) ) {
-            $r[ 'base_uri' ] = $i_stBaseURI;
-        }
-        return new self( new Client( $r ) );
     }
 
 

@@ -23,6 +23,29 @@ use PHPUnit\Framework\TestCase;
 class HttpClientTest extends TestCase {
 
 
+    public function testDebug() : void {
+        $mock = new MockHandler( [
+            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
+            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
+        ] );
+        $http = new Client( [ 'handler' => $mock ] );
+        $cli = new HttpClient( $http );
+        $cli->setDebug( true );
+        ob_start();
+        $cli->post( '/foo', 'body-text', 'text/plain', i_rHeaders: [ 'qux' => 'Qux' ] );
+        $out = ob_get_clean();
+        static::assertStringContainsString( 'POST /foo', $out );
+        static::assertStringContainsString( 'qux: Qux', $out );
+        static::assertStringContainsString( 'body-text', $out );
+
+        $cli->setDebug( false );
+        ob_start();
+        $cli->get( '/foo' );
+        $out = ob_get_clean();
+        static::assertSame( '', $out );
+    }
+
+
     public function testGet() : void {
         $mock = new MockHandler( [
             new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
