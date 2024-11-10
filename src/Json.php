@@ -198,6 +198,13 @@ final class Json {
     }
 
 
+    public static function getArray( mixed $i_x, string $i_stKey, array $i_rDefault = [] ) : array {
+        $x = self::expectArray( $i_x );
+        $x = self::get( $x, $i_stKey, $i_rDefault );
+        return self::expectArray( $x );
+    }
+
+
     public static function getBoolean( mixed $i_x, string $i_stKey, bool $i_bDefault = false ) : bool {
         $x = self::expectArray( $i_x );
         $x = self::get( $x, $i_stKey, $i_bDefault );
@@ -205,12 +212,32 @@ final class Json {
     }
 
 
-    public static function getNumber( mixed $i_x, string $i_stKey, float|int $i_xDefault = 0 ) : int|float {
+    public static function getNull( mixed $i_x, string $i_stKey ) : null {
+        $x = self::expectArray( $i_x );
+        $x = self::get( $x, $i_stKey );
+        if ( is_null( $x ) ) {
+            return null;
+        }
+        throw new JsonException( 'Expected null, got ' . gettype( $x ) . ': ' . self::safeString( $x ) );
+    }
+
+
+    public static function getNumber( mixed $i_x, string $i_stKey, float|int $i_xDefault = 0 ) : float|int {
         $x = self::get( $i_x, $i_stKey, $i_xDefault );
         if ( is_int( $x ) || is_float( $x ) ) {
             return $x;
         }
         throw new JsonException( 'Expected number, got ' . gettype( $x ) . ': ' . self::safeString( $x ) );
+    }
+
+
+    public static function getString( mixed $i_x, string $i_stKey, string $i_stDefault = '' ) : string {
+        $x = self::expectArray( $i_x );
+        $x = self::get( $x, $i_stKey, $i_stDefault );
+        if ( is_string( $x ) ) {
+            return $x;
+        }
+        throw new JsonException( 'Expected string, got ' . gettype( $x ) . ': ' . self::safeString( $x ) );
     }
 
 
