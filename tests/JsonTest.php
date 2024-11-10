@@ -111,21 +111,6 @@ class JsonTest extends TestCase {
     }
 
 
-    public function testDecodeStringable() : void {
-        $stJson = '5';
-        $rDecode = Json::decodeStringable( $stJson );
-        static::assertSame( 5, $rDecode );
-
-        $stJson = 'true';
-        $rDecode = Json::decodeStringable( $stJson );
-        static::assertTrue( $rDecode );
-
-        $stJson = '{"a":1,"b":2}';
-        self::expectException( JsonException::class );
-        Json::decodeStringable( $stJson );
-    }
-
-
     public function testDecodeStringMap() : void {
         $stJson = '{"a":"1","b":"2"}';
         $rDecode = Json::decodeStringMap( $stJson );
@@ -149,6 +134,21 @@ class JsonTest extends TestCase {
         $stJson = '5';
         self::expectException( JsonException::class );
         Json::decodeStringMap( $stJson );
+    }
+
+
+    public function testDecodeStringable() : void {
+        $stJson = '5';
+        $rDecode = Json::decodeStringable( $stJson );
+        static::assertSame( 5, $rDecode );
+
+        $stJson = 'true';
+        $rDecode = Json::decodeStringable( $stJson );
+        static::assertTrue( $rDecode );
+
+        $stJson = '{"a":1,"b":2}';
+        self::expectException( JsonException::class );
+        Json::decodeStringable( $stJson );
     }
 
 
@@ -180,6 +180,14 @@ class JsonTest extends TestCase {
         static::assertSame( [ 1, 2 ], Json::expectArray( [ 1, 2 ] ) );
         self::expectException( JsonException::class );
         Json::expectArray( 5 );
+    }
+
+
+    public function testExpectBoolean() : void {
+        static::assertTrue( Json::expectBoolean( true ) );
+        static::assertFalse( Json::expectBoolean( false ) );
+        self::expectException( JsonException::class );
+        Json::expectBoolean( 5 );
     }
 
 
@@ -230,6 +238,48 @@ class JsonTest extends TestCase {
         self::expectException( JsonException::class );
         Json::fromFile( $stFilename );
 
+    }
+
+
+    public function testGet() : void {
+        $stJson = '{"a":1,"b":2}';
+        $r = Json::decode( $stJson );
+        static::assertSame( 1, Json::get( $r, 'a' ) );
+        static::assertSame( null, Json::get( $r, 'c' ) );
+        static::assertSame( 5, Json::get( $r, 'c', 5 ) );
+        static::expectException( JsonException::class );
+        Json::get( null, 'c' );
+    }
+
+
+    public function testGetBoolean() : void {
+        $stJson = '{"a":true,"b":false}';
+        $r = Json::decode( $stJson );
+        static::assertTrue( Json::getBoolean( $r, 'a' ) );
+        static::assertFalse( Json::getBoolean( $r, 'b' ) );
+        static::assertFalse( Json::getBoolean( $r, 'c' ) );
+        static::assertTrue( Json::getBoolean( $r, 'c', true ) );
+        static::expectException( JsonException::class );
+        Json::getBoolean( null, 'c' );
+    }
+
+
+    public function testGetNumber() : void {
+        $stJson = '{"a":1,"b":"foo"}';
+        $r = Json::decode( $stJson );
+        static::assertSame( 1, Json::getNumber( $r, 'a' ) );
+        static::assertSame( 0, Json::getNumber( $r, 'c' ) );
+        static::assertSame( 5, Json::getNumber( $r, 'c', 5 ) );
+        static::expectException( JsonException::class );
+        Json::getNumber( null, 'c' );
+    }
+
+
+    public function testGetNumberForString() : void {
+        $stJson = '{"a":"foo"}';
+        $r = Json::decode( $stJson );
+        self::expectException( JsonException::class );
+        Json::getNumber( $r, 'a' );
     }
 
 

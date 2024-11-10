@@ -133,6 +133,14 @@ final class Json {
     }
 
 
+    public static function expectBoolean( mixed $i_x ) : bool {
+        if ( ! is_bool( $i_x ) ) {
+            throw new JsonException( 'Expected boolean, got: ' . gettype( $i_x ) );
+        }
+        return $i_x;
+    }
+
+
     /**
      * @return array<string, mixed>
      *
@@ -181,6 +189,28 @@ final class Json {
             throw new JsonException( "Failed to read: {$i_stFilename}" );
         }
         return self::decodeArray( $st );
+    }
+
+
+    public static function get( mixed $i_x, string $i_stKey, mixed $i_xDefault = null ) : mixed {
+        $x = self::expectArray( $i_x );
+        return $x[ $i_stKey ] ?? $i_xDefault;
+    }
+
+
+    public static function getBoolean( mixed $i_x, string $i_stKey, bool $i_bDefault = false ) : bool {
+        $x = self::expectArray( $i_x );
+        $x = self::get( $x, $i_stKey, $i_bDefault );
+        return self::expectBoolean( $x );
+    }
+
+
+    public static function getNumber( mixed $i_x, string $i_stKey, float|int $i_xDefault = 0 ) : int|float {
+        $x = self::get( $i_x, $i_stKey, $i_xDefault );
+        if ( is_int( $x ) || is_float( $x ) ) {
+            return $x;
+        }
+        throw new JsonException( 'Expected number, got ' . gettype( $x ) . ': ' . self::safeString( $x ) );
     }
 
 
