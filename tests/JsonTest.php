@@ -242,36 +242,52 @@ class JsonTest extends TestCase {
 
 
     public function testGet() : void {
-        $stJson = '{"a":1,"b":2}';
+        $stJson = '{"a":1,"b":"foo"}';
         $r = Json::decode( $stJson );
         static::assertSame( 1, Json::get( $r, 'a' ) );
-        static::assertSame( null, Json::get( $r, 'c' ) );
+        static::assertSame( 'foo', Json::get( $r, 'b' ) );
+        static::assertSame( null, Json::get( $r, 'c', i_bNullOK: true ) );
         static::assertSame( 5, Json::get( $r, 'c', 5 ) );
         static::expectException( JsonException::class );
-        Json::get( null, 'c' );
+        Json::get( $r, 'c' );
     }
 
 
     public function testGetArray() : void {
-        $stJson = '{"a":[1,2]}';
+        $stJson = '{"a":[1,2], "b":"foo"}';
         $r = Json::decode( $stJson );
         static::assertSame( [ 1, 2 ], Json::getArray( $r, 'a' ) );
-        static::assertSame( [], Json::getArray( $r, 'b' ) );
-        static::assertSame( [ 5 ], Json::getArray( $r, 'b', [ 5 ] ) );
+        static::assertSame( [], Json::getArray( $r, 'c', [] ) );
         static::expectException( JsonException::class );
-        Json::getArray( null, 'c' );
+        Json::getArray( $r, 'b' );
+    }
+
+
+    public function testGetArrayWithMissingKey() : void {
+        $stJson = '{"a":[1,2]}';
+        $r = Json::decode( $stJson );
+        self::expectException( JsonException::class );
+        Json::getArray( $r, 'b' );
     }
 
 
     public function testGetBoolean() : void {
-        $stJson = '{"a":true,"b":false}';
+        $stJson = '{"a":true,"b":false,"c":"foo"}';
         $r = Json::decode( $stJson );
         static::assertTrue( Json::getBoolean( $r, 'a' ) );
         static::assertFalse( Json::getBoolean( $r, 'b' ) );
-        static::assertFalse( Json::getBoolean( $r, 'c' ) );
-        static::assertTrue( Json::getBoolean( $r, 'c', true ) );
+        static::assertTrue( Json::getBoolean( $r, 'd', true ) );
+        static::assertFalse( Json::getBoolean( $r, 'd', false ) );
         static::expectException( JsonException::class );
-        Json::getBoolean( null, 'c' );
+        Json::getBoolean( $r, 'c' );
+    }
+
+
+    public function testGetBooleanWithMissingKey() : void {
+        $stJson = '{"a":true}';
+        $r = Json::decode( $stJson );
+        self::expectException( JsonException::class );
+        Json::getBoolean( $r, 'b' );
     }
 
 
@@ -279,8 +295,15 @@ class JsonTest extends TestCase {
         $stJson = '{"a":null, "b":5}';
         $r = Json::decode( $stJson );
         static::assertNull( Json::getNull( $r, 'a' ) );
-        static::assertNull( Json::getNull( $r, 'c' ) );
         static::expectException( JsonException::class );
+        Json::getNull( $r, 'b' );
+    }
+
+
+    public function testGetNullWithMissingKey() : void {
+        $stJson = '{"a":null}';
+        $r = Json::decode( $stJson );
+        self::expectException( JsonException::class );
         Json::getNull( $r, 'b' );
     }
 
@@ -289,18 +312,9 @@ class JsonTest extends TestCase {
         $stJson = '{"a":1,"b":"foo"}';
         $r = Json::decode( $stJson );
         static::assertSame( 1, Json::getNumber( $r, 'a' ) );
-        static::assertSame( 0, Json::getNumber( $r, 'c' ) );
         static::assertSame( 5, Json::getNumber( $r, 'c', 5 ) );
         static::expectException( JsonException::class );
-        Json::getNumber( null, 'c' );
-    }
-
-
-    public function testGetNumberForString() : void {
-        $stJson = '{"a":"foo"}';
-        $r = Json::decode( $stJson );
-        self::expectException( JsonException::class );
-        Json::getNumber( $r, 'a' );
+        Json::getNumber( $r, 'b' );
     }
 
 
@@ -308,10 +322,17 @@ class JsonTest extends TestCase {
         $stJson = '{"a":"foo","b":5}';
         $r = Json::decode( $stJson );
         static::assertSame( 'foo', Json::getString( $r, 'a' ) );
-        static::assertSame( '', Json::getString( $r, 'c' ) );
         static::assertSame( 'bar', Json::getString( $r, 'c', 'bar' ) );
         static::expectException( JsonException::class );
         Json::getString( $r, 'b' );
+    }
+
+
+    public function testGetWithMissingKey() : void {
+        $stJson = '{"a":1}';
+        $r = Json::decode( $stJson );
+        self::expectException( JsonException::class );
+        Json::get( $r, 'b' );
     }
 
 
