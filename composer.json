@@ -10,6 +10,7 @@
   "require": {
     "ext-json": "*",
     "guzzlehttp/psr7": "^2.0",
+    "jdwx/json-php": "^1.0",
     "psr/http-client": "^1.0",
     "psr/http-factory": "^1.0",
     "psr/http-message": "^1.0",
