@@ -9,6 +9,7 @@ namespace JDWX\JsonApiClient;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use JDWX\Json\Json;
 use JsonException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;

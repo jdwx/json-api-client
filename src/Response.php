@@ -7,6 +7,7 @@ declare( strict_types = 1 );
 namespace JDWX\JsonApiClient;
 
 
+use JDWX\Json\Json;
 use Psr\Http\Message\StreamInterface;
 use Stringable;
 
@@ -24,7 +25,7 @@ class Response implements Stringable {
 
 
     /** @param array<string, list<string>> $rHeaders */
-    public function __construct( private readonly int    $uStatus, array $rHeaders,
+    public function __construct( private readonly int             $uStatus, array $rHeaders,
                                  private readonly StreamInterface $smBody ) {
         $r = [];
         foreach ( $rHeaders as $stName => $xValue ) {
@@ -58,14 +59,6 @@ class Response implements Stringable {
             $this->bBodyRead = true;
         }
         return $this->nstBody;
-    }
-
-
-    public function json() : mixed {
-        if ( is_null( $this->json ) ) {
-            $this->json = Json::decode( $this->body() );
-        }
-        return $this->json;
     }
 
 
@@ -112,6 +105,11 @@ class Response implements Stringable {
     }
 
 
+    public function hasHeader( string $i_stName ) : bool {
+        return array_key_exists( $i_stName, $this->rHeaders );
+    }
+
+
     public function isContentType( string $i_stType, ?string $i_stSubtype = null ) : bool {
         $nstType = $this->getBareContentType();
         if ( is_null( $nstType ) ) {
@@ -122,6 +120,7 @@ class Response implements Stringable {
         }
         return $nstType === $i_stType;
     }
+
 
     public function isContentTypeLoose( string $i_stType, string $i_stSubtype ) : bool {
         return $this->isContentTypeType( $i_stType ) && $this->isContentTypeSubtype( $i_stSubtype );
@@ -156,16 +155,6 @@ class Response implements Stringable {
     }
 
 
-    public function hasHeader( string $i_stName ) : bool {
-        return array_key_exists( $i_stName, $this->rHeaders );
-    }
-
-
-    public function status() : int {
-        return $this->uStatus;
-    }
-
-
     public function isRedirect() : bool {
         return 3 === intval( $this->uStatus / 100 );
     }
@@ -173,6 +162,19 @@ class Response implements Stringable {
 
     public function isSuccess() : bool {
         return 2 === intval( $this->uStatus / 100 );
+    }
+
+
+    public function json() : mixed {
+        if ( is_null( $this->json ) ) {
+            $this->json = Json::decode( $this->body() );
+        }
+        return $this->json;
+    }
+
+
+    public function status() : int {
+        return $this->uStatus;
     }
 
 
