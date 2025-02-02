@@ -198,7 +198,8 @@ class HttpClientTest extends TestCase {
     }
 
 
-    private function makeHistoryMock( array &$o_rHistory, ?array $i_nrResponses = null ) : HandlerStack {
+    /** @param array|ArrayAccess<int, array> &$o_rHistory */
+    private function makeHistoryMock( array|ArrayAccess &$o_rHistory, ?array $i_nrResponses = null ) : HandlerStack {
         $i_nrResponses = $i_nrResponses ?? [
             new Response( 200, [], '' ),
         ];
