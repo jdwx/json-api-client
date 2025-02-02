@@ -192,6 +192,19 @@ class HttpClientTest extends TestCase {
     }
 
 
+    public function testSendRequestWithFailedRequestAllowed() : void {
+        $mock = new MockHandler( [
+            new Response( 500, [ 'Foo' => 'Bar' ], 'baz' ),
+        ] );
+        $http = new Client( [ 'handler' => $mock ] );
+        $cli = new HttpClient( $http );
+        $req = new Request( 'GET', 'https://www.example.com/foo' );
+        $rsp = $cli->sendRequest( $req, i_bAllowFailure: true );
+        static::assertEquals( 500, $rsp->status() );
+        static::assertEquals( 'baz', $rsp->body() );
+    }
+
+
     public function testWithGuzzle() : void {
         $cli = HttpClient::withGuzzle( 'https://www.example.com/' );
         static::assertInstanceOf( HttpClient::class, $cli );

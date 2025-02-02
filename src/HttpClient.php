@@ -132,7 +132,11 @@ class HttpClient {
 
     public function sendRequest( RequestInterface $i_request, bool $i_bAllowFailure = false ) : Response {
         try {
-            $response = $this->client->send( $i_request );
+            $r = [];
+            if ( $i_bAllowFailure ) {
+                $r[ 'http_errors' ] = false;
+            }
+            $response = $this->client->send( $i_request, $r );
         } catch ( Throwable $ex ) {
             throw new TransportException(
                 "Transport Error for {$i_request->getMethod()} {$i_request->getUri()}: " . $ex->getMessage(),
