@@ -92,6 +92,9 @@ class HttpClient {
             if ( $i_bStream ) {
                 $rOptions[ 'stream' ] = true;
             }
+            if ( $i_bAllowFailure ) {
+                $rOptions[ 'http_errors' ] = false;
+            }
 
             if ( $this->bDebug ) {
                 echo "Request: {$i_stMethod} {$i_stPath}\n";
