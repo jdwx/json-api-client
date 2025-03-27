@@ -1,6 +1,7 @@
-.*.swp
 /.idea
 /.phpunit.result.cache
 /composer.lock
 /phan.txt
 /vendor
+.DS_Store
+.*.swp

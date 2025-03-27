@@ -9,18 +9,81 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\HttpFactory;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use JDWX\JsonApiClient\HttpClient;
 use JDWX\JsonApiClient\HTTPException;
 use JDWX\JsonApiClient\TransportException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
 
 
 // require_once __DIR__ . '/MyTestClient.php';
 
 
-class HttpClientTest extends TestCase {
+#[CoversClass( HttpClient::class )]
+final class HttpClientTest extends TestCase {
+
+
+    public function testConstructForIncompatibleStreamFactory() : void {
+        $mock = new MockHandler( [
+            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
+        ] );
+        $fact = new class() implements RequestFactoryInterface {
+
+
+            public function createRequest( string $method, $uri ) : RequestInterface {
+                $fact = new HttpFactory();
+                return $fact->createRequest( $method, $uri );
+            }
+
+
+        };
+        $api = new HttpClient( new Client( [ 'handler' => $mock ] ), i_requestFactory: $fact );
+        $r = $api->get( '/' );
+        self::assertEquals( 200, $r->status() );
+        self::assertEquals( 'baz', $r->body() );
+        self::assertEquals( 'Bar', $r->getOneHeader( 'Foo' ) );
+    }
+
+
+    public function testConstructForMissingFactories() : void {
+        $mock = new MockHandler( [
+            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
+        ] );
+        $api = new HttpClient( new Client( [ 'handler' => $mock ] ) );
+        $r = $api->get( '/' );
+        self::assertEquals( 200, $r->status() );
+        self::assertEquals( 'baz', $r->body() );
+        self::assertEquals( 'Bar', $r->getOneHeader( 'Foo' ) );
+    }
+
+
+    public function testConstructForMissingRequestFactory() : void {
+        $mock = new MockHandler( [
+            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
+        ] );
+        $api = new HttpClient( new Client( [ 'handler' => $mock ] ), i_streamFactory: new HttpFactory() );
+        $r = $api->get( '/' );
+        self::assertEquals( 200, $r->status() );
+        self::assertEquals( 'baz', $r->body() );
+        self::assertEquals( 'Bar', $r->getOneHeader( 'Foo' ) );
+    }
+
+
+    public function testConstructForMissingStreamFactory() : void {
+        $mock = new MockHandler( [
+            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
+        ] );
+        $api = new HttpClient( new Client( [ 'handler' => $mock ] ), i_requestFactory: new HttpFactory() );
+        $r = $api->get( '/' );
+        self::assertEquals( 200, $r->status() );
+        self::assertEquals( 'baz', $r->body() );
+        self::assertEquals( 'Bar', $r->getOneHeader( 'Foo' ) );
+    }
 
 
     public function testDebug() : void {
@@ -34,15 +97,15 @@ class HttpClientTest extends TestCase {
         ob_start();
         $cli->post( '/foo', 'body-text', 'text/plain', i_rHeaders: [ 'qux' => 'Qux' ] );
         $out = ob_get_clean();
-        static::assertStringContainsString( 'POST /foo', $out );
-        static::assertStringContainsString( 'qux: Qux', $out );
-        static::assertStringContainsString( 'body-text', $out );
+        self::assertStringContainsString( 'POST /foo', $out );
+        self::assertStringContainsString( 'qux: Qux', $out );
+        self::assertStringContainsString( 'body-text', $out );
 
         $cli->setDebug( false );
         ob_start();
         $cli->get( '/foo' );
         $out = ob_get_clean();
-        static::assertSame( '', $out );
+        self::assertSame( '', $out );
     }
 
 
@@ -53,8 +116,8 @@ class HttpClientTest extends TestCase {
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
         $rsp = $cli->get( '/foo' );
-        static::assertEquals( 200, $rsp->status() );
-        static::assertEquals( 'baz', $rsp->body() );
+        self::assertEquals( 200, $rsp->status() );
+        self::assertEquals( 'baz', $rsp->body() );
     }
 
 
@@ -66,8 +129,21 @@ class HttpClientTest extends TestCase {
         $cli->setExtraHeader( 'X-Foo', 'Bar' );
         $cli->get( 'https://www.example.com/foo', i_rHeaders: [ 'X-Baz' => 'Qux' ] );
         $req = $r[ 0 ][ 'request' ];
-        static::assertEquals( 'Bar', $req->getHeader( 'X-Foo' )[ 0 ] );
-        static::assertEquals( 'Qux', $req->getHeader( 'X-Baz' )[ 0 ] );
+        self::assertEquals( 'Bar', $req->getHeader( 'X-Foo' )[ 0 ] );
+        self::assertEquals( 'Qux', $req->getHeader( 'X-Baz' )[ 0 ] );
+    }
+
+
+    public function testGetForRequestException() : void {
+        $response = new Response( body: 'TEST_RESPONSE' );
+        $mock = new MockHandler( [
+            new RequestException( 'foo', new Request( 'GET', 'https://www.example.com/foo' ),
+                response: $response ),
+        ] );
+        $http = new Client( [ 'handler' => $mock ] );
+        $cli = new HttpClient( $http );
+        $r = $cli->get( '/foo' );
+        self::assertSame( 'TEST_RESPONSE', $r->body() );
     }
 
 
@@ -77,10 +153,21 @@ class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        $rsp = $cli->get( '/foo', i_bStream: true );
+        $rsp = $cli->get( '/foo' );
         $st = $rsp->streamBody( 12 );
-        static::assertEquals( 200, $rsp->status() );
-        static::assertEquals( 'baz', $st );
+        self::assertEquals( 200, $rsp->status() );
+        self::assertEquals( 'baz', $st );
+    }
+
+
+    public function testGetForTransportError() : void {
+        $mock = new MockHandler( [
+            new RuntimeException( 'Nope.' ),
+        ] );
+        $http = new Client( [ 'handler' => $mock ] );
+        $cli = new HttpClient( $http );
+        self::expectException( TransportException::class );
+        $cli->get( '/foo' );
     }
 
 
@@ -102,8 +189,8 @@ class HttpClientTest extends TestCase {
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
         $rsp = $cli->get( '/foo', i_bAllowFailure: true );
-        static::assertEquals( 404, $rsp->status() );
-        static::assertEquals( 'baz', $rsp->body() );
+        self::assertEquals( 404, $rsp->status() );
+        self::assertEquals( 'baz', $rsp->body() );
     }
 
 
@@ -125,8 +212,8 @@ class HttpClientTest extends TestCase {
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
         $rsp = $cli->post( '/foo', 'body', 'text/plain' );
-        static::assertEquals( 200, $rsp->status() );
-        static::assertEquals( 'baz', $rsp->body() );
+        self::assertEquals( 200, $rsp->status() );
+        self::assertEquals( 'baz', $rsp->body() );
     }
 
 
@@ -140,7 +227,7 @@ class HttpClientTest extends TestCase {
         $cli->setExtraHeader( 'X-Foo', 'Bar' );
         $cli->post( 'https://www.example.com/foo', '', 'application/json' );
         $req = $r[ 0 ][ 'request' ];
-        static::assertEquals( 'Bar', $req->getHeader( 'X-Foo' )[ 0 ] );
+        self::assertEquals( 'Bar', $req->getHeader( 'X-Foo' )[ 0 ] );
     }
 
 
@@ -151,7 +238,7 @@ class HttpClientTest extends TestCase {
         $cli = new HttpClient( $http );
         $cli->post( 'https://www.example.com/foo', '', 'application/json', [ 'X-Foo' => 'Bar' ] );
         $req = $r[ 0 ][ 'request' ];
-        static::assertEquals( 'Bar', $req->getHeader( 'X-Foo' )[ 0 ] );
+        self::assertEquals( 'Bar', $req->getHeader( 'X-Foo' )[ 0 ] );
     }
 
 
@@ -162,8 +249,8 @@ class HttpClientTest extends TestCase {
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
         $rsp = $cli->postJson( '/foo', [ 'a' => 1, 'b' => 2 ] );
-        static::assertEquals( 200, $rsp->status() );
-        static::assertEquals( 'baz', $rsp->body() );
+        self::assertEquals( 200, $rsp->status() );
+        self::assertEquals( 'baz', $rsp->body() );
     }
 
 
@@ -175,8 +262,8 @@ class HttpClientTest extends TestCase {
         $cli = new HttpClient( $http );
         $req = new Request( 'GET', 'https://www.example.com/foo' );
         $rsp = $cli->sendRequest( $req );
-        static::assertEquals( 200, $rsp->status() );
-        static::assertEquals( 'baz', $rsp->body() );
+        self::assertEquals( 200, $rsp->status() );
+        self::assertEquals( 'baz', $rsp->body() );
     }
 
 
@@ -200,14 +287,14 @@ class HttpClientTest extends TestCase {
         $cli = new HttpClient( $http );
         $req = new Request( 'GET', 'https://www.example.com/foo' );
         $rsp = $cli->sendRequest( $req, i_bAllowFailure: true );
-        static::assertEquals( 500, $rsp->status() );
-        static::assertEquals( 'baz', $rsp->body() );
+        self::assertEquals( 500, $rsp->status() );
+        self::assertEquals( 'baz', $rsp->body() );
     }
 
 
     public function testWithGuzzle() : void {
         $cli = HttpClient::withGuzzle( 'https://www.example.com/' );
-        static::assertInstanceOf( HttpClient::class, $cli );
+        self::assertInstanceOf( HttpClient::class, $cli );
     }
 
 

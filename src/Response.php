@@ -9,6 +9,7 @@ namespace JDWX\JsonApiClient;
 
 use JDWX\Json\Json;
 use Psr\Http\Message\StreamInterface;
+use Psr\Log\LoggerInterface;
 use Stringable;
 
 
@@ -25,8 +26,9 @@ class Response implements Stringable {
 
 
     /** @param array<string, list<string>> $rHeaders */
-    public function __construct( private readonly int             $uStatus, array $rHeaders,
-                                 private readonly StreamInterface $smBody ) {
+    public function __construct( private readonly int              $uStatus, array $rHeaders,
+                                 private readonly StreamInterface  $smBody,
+                                 private readonly ?LoggerInterface $log = null ) {
         $r = [];
         foreach ( $rHeaders as $stName => $xValue ) {
             $r[ strtolower( $stName ) ] = $xValue;
@@ -82,7 +84,7 @@ class Response implements Stringable {
     }
 
 
-    public function getOneHeader( string $i_stName ) : ?string {
+    public function getOneHeader( string $i_stName, bool $i_bConsolidateMultiple = false ) : ?string {
         $rOut = $this->getHeader( $i_stName );
         if ( ! is_array( $rOut ) ) {
             return null;
@@ -92,7 +94,13 @@ class Response implements Stringable {
         if ( 1 === $uCount ) {
             return $rOut[ 0 ];
         }
-        throw new RuntimeException( "Multiple headers found for {$i_stName}" );
+        if ( $i_bConsolidateMultiple ) {
+            return implode( ', ', $rOut );
+        }
+        $this->log?->warning( 'Unexpected multiple headers found.', [
+            $i_stName => $rOut,
+        ] );
+        return null;
     }
 
 

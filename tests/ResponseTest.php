@@ -5,13 +5,17 @@ declare( strict_types = 1 );
 
 
 use JDWX\JsonApiClient\Response;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LoggerTrait;
 
 
 require_once __DIR__ . '/MyTestStream.php';
 
 
-class ResponseTest extends TestCase {
+#[CoversClass( Response::class )]
+final class ResponseTest extends TestCase {
 
 
     public function testBody() : void {
@@ -46,9 +50,37 @@ class ResponseTest extends TestCase {
         self::assertNull( $rsp->getOneHeader( 'bar' ) );
 
         $rsp = new Response( 12345, [ 'foo' => [ 'bar', 'baz' ] ], $mts );
-        $this->expectException( RuntimeException::class );
         $r = $rsp->getOneHeader( 'foo' );
-        var_dump( $r );
+        self::assertNull( $r );
+
+        $rsp = new Response( 12345, [ 'foo' => [ 'bar', 'baz' ] ], $mts );
+        $r = $rsp->getOneHeader( 'foo', true );
+        self::assertEquals( 'bar, baz', $r );
+
+        $log = new class() implements LoggerInterface {
+
+
+            use LoggerTrait;
+
+
+            public string $stMessage = '';
+
+            public array $rContext = [];
+
+            public int|string $level = -1;
+
+
+            public function log( $level, $message, array $context = [] ) : void {
+                $this->level = $level;
+                $this->stMessage = $message;
+                $this->rContext = $context;
+            }
+
+
+        };
+        $rsp = new Response( 12345, [ 'foo' => [ 'bar', 'baz' ] ], $mts, $log );
+        self::assertNull( $rsp->getOneHeader( 'foo' ) );
+        self::assertSame( [ 'foo' => [ 'bar', 'baz' ] ], $log->rContext );
     }
 
 

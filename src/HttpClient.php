@@ -7,12 +7,15 @@ declare( strict_types = 1 );
 namespace JDWX\JsonApiClient;
 
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\RequestException;
 use JDWX\Json\Json;
 use JsonException;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Client\RequestExceptionInterface;
+use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 
@@ -25,34 +28,53 @@ class HttpClient {
     /** @var array<string, string> $rExtraHeaders */
     private array $rExtraHeaders = [];
 
+    private RequestFactoryInterface $requestFactory;
 
-    public function __construct( private readonly Client $client ) {}
+    private StreamFactoryInterface $streamFactory;
 
 
-    public static function withGuzzle( ?string $i_stBaseURI = null, float $i_fTimeout = 5.0 ) : self {
-        $r = [
-            'timeout' => $i_fTimeout,
-        ];
-        if ( is_string( $i_stBaseURI ) ) {
-            $r[ 'base_uri' ] = $i_stBaseURI;
+    public function __construct( private readonly ClientInterface  $client,
+                                 private readonly ?LoggerInterface $log = null,
+                                 ?RequestFactoryInterface          $i_requestFactory = null,
+                                 ?StreamFactoryInterface           $i_streamFactory = null,
+    ) {
+        if ( ! $i_requestFactory instanceof RequestFactoryInterface ) {
+            $i_requestFactory = GuzzleShim::createFactory();
+            $this->log?->warning( 'No RequestFactory provided; using default' );
         }
-        return new self( new Client( $r ) );
+        $this->requestFactory = $i_requestFactory;
+
+        if ( ! $i_streamFactory instanceof StreamFactoryInterface ) {
+            if ( $i_requestFactory instanceof StreamFactoryInterface ) {
+                $i_streamFactory = $i_requestFactory;
+            } else {
+                $i_streamFactory = GuzzleShim::createFactory();
+                $this->log?->warning( 'No StreamFactory provided; using default' );
+            }
+        }
+        $this->streamFactory = $i_streamFactory;
+    }
+
+
+    public static function withGuzzle( ?string          $i_stBaseURI = null, float $i_fTimeout = 5.0,
+                                       ?LoggerInterface $i_log = null ) : self {
+        $client = GuzzleShim::createClient( $i_stBaseURI, $i_fTimeout );
+        $factory = GuzzleShim::createFactory();
+        return new self( $client, $i_log, $factory, $factory );
     }
 
 
     public function get( string $i_stPath, array $i_rHeaders = [],
-                         bool   $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+                         bool   $i_bAllowFailure = false ) : Response {
         return $this->request( 'GET', $i_stPath, i_rHeaders: $i_rHeaders,
-            i_bAllowFailure: $i_bAllowFailure, i_bStream: $i_bStream );
+            i_bAllowFailure: $i_bAllowFailure );
     }
 
 
     public function post( string $i_stPath, string $i_stBody, string $i_stContentType, array $i_rHeaders = [],
-                          bool   $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+                          bool   $i_bAllowFailure = false ) : Response {
         $i_rHeaders[ 'Content-Type' ] = $i_stContentType;
-        return $this->request( 'POST', $i_stPath, $i_stBody,
-            $i_rHeaders, $i_bAllowFailure, $i_bStream
-        );
+        return $this->request( 'POST', $i_stPath, $i_stBody, $i_rHeaders, $i_bAllowFailure );
     }
 
 
@@ -62,40 +84,24 @@ class HttpClient {
      * @param string $i_stContentType Content type of the request body.
      * @param array $i_rHeaders Additional headers to send. (As header => value pairs.)
      * @param bool $i_bAllowFailure If true, don't throw an exception on non-2xx status.
-     * @param bool $i_bStream If true, don't wait for the entire response body.
      * @return Response
      * @throws JsonException
      */
     public function postJson( string $i_stPath, array $i_rJson,
                               string $i_stContentType = 'application/json',
                               array  $i_rHeaders = [],
-                              bool   $i_bAllowFailure = false,
-                              bool   $i_bStream = false ) : Response {
+                              bool   $i_bAllowFailure = false ) : Response {
         return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType,
-            $i_rHeaders, $i_bAllowFailure, $i_bStream );
+            $i_rHeaders, $i_bAllowFailure );
     }
 
 
     /** @param array<string, string> $i_rHeaders */
     public function request( string  $i_stMethod, string $i_stPath,
                              ?string $i_nstBody = null, array $i_rHeaders = [],
-                             bool    $i_bAllowFailure = false, bool $i_bStream = false ) : Response {
+                             bool    $i_bAllowFailure = false ) : Response {
         $i_rHeaders = array_merge( $this->rExtraHeaders, $i_rHeaders );
         try {
-            $rOptions = [];
-            if ( is_string( $i_nstBody ) ) {
-                $rOptions[ 'body' ] = $i_nstBody;
-            }
-            if ( ! empty( $i_rHeaders ) ) {
-                $rOptions[ 'headers' ] = $i_rHeaders;
-            }
-            if ( $i_bStream ) {
-                $rOptions[ 'stream' ] = true;
-            }
-            if ( $i_bAllowFailure ) {
-                $rOptions[ 'http_errors' ] = false;
-            }
-
             if ( $this->bDebug ) {
                 echo "Request: {$i_stMethod} {$i_stPath}\n";
                 echo "Headers:\n";
@@ -106,11 +112,22 @@ class HttpClient {
                     echo "Body:\n{$i_nstBody}\n";
                 }
             }
-            $response = $this->client->request( $i_stMethod, $i_stPath, $rOptions );
-        } catch ( RequestException $ex ) {
-            $response = $ex->getResponse();
-            if ( $response ) {
-                return $this->handleResponse( $response, $i_bAllowFailure, $i_stMethod, $i_stPath );
+            $req = $this->requestFactory->createRequest( $i_stMethod, $i_stPath );
+            if ( is_string( $i_nstBody ) ) {
+                $req->withBody( $this->streamFactory->createStream( $i_nstBody ) );
+            }
+            foreach ( $i_rHeaders as $stHeader => $stValue ) {
+                $req = $req->withHeader( $stHeader, $stValue );
+            }
+            $response = $this->client->sendRequest( $req );
+
+            // $response = $this->client->request( $i_stMethod, $i_stPath, $rOptions );
+        } catch ( RequestExceptionInterface $ex ) {
+            if ( method_exists( $ex, 'getResponse' ) ) {
+                $response = $ex->getResponse();
+                if ( $response instanceof ResponseInterface ) {
+                    return $this->handleResponse( $response, $i_bAllowFailure, $i_stMethod, $i_stPath );
+                }
             }
             throw new HTTPException(
                 "HTTP Error without response for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
@@ -132,11 +149,7 @@ class HttpClient {
 
     public function sendRequest( RequestInterface $i_request, bool $i_bAllowFailure = false ) : Response {
         try {
-            $r = [];
-            if ( $i_bAllowFailure ) {
-                $r[ 'http_errors' ] = false;
-            }
-            $response = $this->client->send( $i_request, $r );
+            $response = $this->client->sendRequest( $i_request );
         } catch ( Throwable $ex ) {
             throw new TransportException(
                 "Transport Error for {$i_request->getMethod()} {$i_request->getUri()}: " . $ex->getMessage(),
@@ -172,13 +185,16 @@ class HttpClient {
             foreach ( $rHeaders as $stHeader => $xValue ) {
                 $stHeaders .= "{$stHeader}: " . implode( ', ', $xValue ) . "\n";
             }
-            throw new HTTPException( "HTTP Error {$uStatus} for {$i_stMethod} {$i_stPath} [{$stHeaders}]: " . $stBody );
+            throw new HTTPException(
+                "HTTP Error {$uStatus} for {$i_stMethod} {$i_stPath} [{$stHeaders}]: {$stBody}"
+            );
         }
 
         return new Response(
             $uStatus,
             $rHeaders,
-            $body
+            $body,
+            $this->log
         );
 
     }
