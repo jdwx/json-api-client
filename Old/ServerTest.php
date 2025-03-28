@@ -4,18 +4,19 @@
 declare( strict_types = 1 );
 
 
-use JDWX\JsonApiClient\HttpClient;
+namespace Old;
+
+
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 
 
 #[CoversClass( HttpClient::class )]
-final class ServerTest extends TestCase {
+final class ServerTest {
 
 
     public function testFor404() : void {
         $api = $this->newHttpClient();
-        self::expectException( \JDWX\JsonApiClient\HTTPException::class );
+        self::expectException( \JDWX\JsonApiClient\Exceptions\HttpStatusException::class );
         $api->get( 'nonexistent?error=404&message=TEST_MESSAGE' );
     }
 
@@ -40,7 +41,7 @@ final class ServerTest extends TestCase {
 
     public function testGetFor500() : void {
         $api = $this->newHttpClient();
-        self::expectException( \JDWX\JsonApiClient\HTTPException::class );
+        self::expectException( \JDWX\JsonApiClient\Exceptions\HttpStatusException::class );
         $api->get( 'test?error=500&message=TEST_MESSAGE' );
     }
 

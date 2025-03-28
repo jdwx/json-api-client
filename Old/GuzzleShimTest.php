@@ -4,13 +4,15 @@
 declare( strict_types = 1 );
 
 
-use JDWX\JsonApiClient\GuzzleShim;
+namespace Old;
+
+
+use GuzzleHttp;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 
 
 #[CoversClass( GuzzleShim::class )]
-final class GuzzleShimTest extends TestCase {
+final class GuzzleShimTest {
 
 
     public function testCreateClient() : void {

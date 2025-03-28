@@ -4,7 +4,7 @@
 declare( strict_types = 1 );
 
 
-namespace JDWX\JsonApiClient;
+namespace Old;
 
 
 use GuzzleHttp\Client;

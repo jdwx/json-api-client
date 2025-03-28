@@ -7,7 +7,7 @@ declare( strict_types = 1 );
 require __DIR__ . '/../vendor/autoload.php';
 
 
-$client = JDWX\JsonApiClient\HttpClient::withGuzzle( 'https://api.example.com' );
+$client = Old\HttpClient::withGuzzle( 'https://api.example.com' );
 $rsp = $client->request( 'GET', '/v1/resource' );
 if ( ! $rsp->isSuccess() ) {
     $uStatus = $rsp->status();

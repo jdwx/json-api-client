@@ -4,15 +4,16 @@
 declare( strict_types = 1 );
 
 
-namespace JDWX\JsonApiClient;
+namespace Old;
 
 
 use JDWX\Json\Json;
+use JDWX\JsonApiClient\Exceptions\HttpStatusException;
+use JDWX\JsonApiClient\Exceptions\NetworkException;
 use JsonException;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Client\RequestExceptionInterface;
 use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
@@ -129,13 +130,13 @@ class HttpClient {
                     return $this->handleResponse( $response, $i_bAllowFailure, $i_stMethod, $i_stPath );
                 }
             }
-            throw new HTTPException(
+            throw new HttpStatusException(
                 "HTTP Error without response for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
                 $ex->getCode(),
                 $ex
             );
         } catch ( Throwable $ex ) {
-            throw new TransportException(
+            throw new NetworkException(
                 "Transport Error for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
                 $ex->getCode(),
                 $ex
@@ -144,22 +145,6 @@ class HttpClient {
 
         return $this->handleResponse( $response, $i_bAllowFailure, $i_stMethod, $i_stPath );
 
-    }
-
-
-    public function sendRequest( RequestInterface $i_request, bool $i_bAllowFailure = false ) : Response {
-        try {
-            $response = $this->client->sendRequest( $i_request );
-        } catch ( Throwable $ex ) {
-            throw new TransportException(
-                "Transport Error for {$i_request->getMethod()} {$i_request->getUri()}: " . $ex->getMessage(),
-                $ex->getCode(),
-                $ex
-            );
-        }
-
-        return $this->handleResponse( $response, $i_bAllowFailure, $i_request->getMethod(),
-            $i_request->getUri()->getPath() );
     }
 
 
@@ -185,7 +170,7 @@ class HttpClient {
             foreach ( $rHeaders as $stHeader => $xValue ) {
                 $stHeaders .= "{$stHeader}: " . implode( ', ', $xValue ) . "\n";
             }
-            throw new HTTPException(
+            throw new HttpStatusException(
                 "HTTP Error {$uStatus} for {$i_stMethod} {$i_stPath} [{$stHeaders}]: {$stBody}"
             );
         }

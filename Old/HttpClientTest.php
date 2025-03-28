@@ -4,6 +4,9 @@
 declare( strict_types = 1 );
 
 
+namespace Old;
+
+
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\MockHandler;
@@ -12,11 +15,9 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\HttpFactory;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use JDWX\JsonApiClient\HttpClient;
-use JDWX\JsonApiClient\HTTPException;
-use JDWX\JsonApiClient\TransportException;
+use JDWX\JsonApiClient\Exceptions\HttpStatusException;
+use JDWX\JsonApiClient\Exceptions\NetworkException;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 
@@ -25,7 +26,7 @@ use Psr\Http\Message\RequestInterface;
 
 
 #[CoversClass( HttpClient::class )]
-final class HttpClientTest extends TestCase {
+final class HttpClientTest {
 
 
     public function testConstructForIncompatibleStreamFactory() : void {
@@ -166,7 +167,7 @@ final class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        self::expectException( TransportException::class );
+        self::expectException( NetworkException::class );
         $cli->get( '/foo' );
     }
 
@@ -177,7 +178,7 @@ final class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        self::expectException( HTTPException::class );
+        self::expectException( HttpStatusException::class );
         $cli->get( '/foo' );
     }
 
@@ -200,7 +201,7 @@ final class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        self::expectException( HTTPException::class );
+        self::expectException( HttpStatusException::class );
         $cli->get( '/foo' );
     }
 
@@ -273,7 +274,7 @@ final class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        self::expectException( TransportException::class );
+        self::expectException( NetworkException::class );
         $req = new Request( 'GET', 'https://www.example.com/foo' );
         $cli->sendRequest( $req );
     }
