@@ -7,6 +7,8 @@ declare( strict_types = 1 );
 namespace JDWX\JsonApiClient;
 
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use JDWX\Json\Json;
 use JsonException;
 use Psr\Http\Client\ClientInterface;
@@ -66,8 +68,7 @@ class HttpClient {
 
     public function get( string $i_stPath, array $i_rHeaders = [],
                          bool   $i_bAllowFailure = false ) : Response {
-        return $this->request( 'GET', $i_stPath, i_rHeaders: $i_rHeaders,
-            i_bAllowFailure: $i_bAllowFailure );
+        return $this->request( 'GET', $i_stPath, i_rHeaders: $i_rHeaders, i_bAllowFailure: $i_bAllowFailure );
     }
 
 
@@ -124,6 +125,7 @@ class HttpClient {
             // $response = $this->client->request( $i_stMethod, $i_stPath, $rOptions );
         } catch ( RequestExceptionInterface $ex ) {
             if ( method_exists( $ex, 'getResponse' ) ) {
+                assert( $ex instanceof RequestException );
                 $response = $ex->getResponse();
                 if ( $response instanceof ResponseInterface ) {
                     return $this->handleResponse( $response, $i_bAllowFailure, $i_stMethod, $i_stPath );
@@ -149,7 +151,12 @@ class HttpClient {
 
     public function sendRequest( RequestInterface $i_request, bool $i_bAllowFailure = false ) : Response {
         try {
-            $response = $this->client->sendRequest( $i_request );
+            $r = [];
+            if ( $i_bAllowFailure ) {
+                $r[ 'http_errors' ] = false;
+            }
+            assert( $this->client instanceof Client );
+            $response = $this->client->send( $i_request, $r );
         } catch ( Throwable $ex ) {
             throw new TransportException(
                 "Transport Error for {$i_request->getMethod()} {$i_request->getUri()}: " . $ex->getMessage(),
