@@ -15,7 +15,7 @@ final class ServerTest extends TestCase {
 
     public function testFor404() : void {
         $api = $this->newHttpClient();
-        self::expectException( \JDWX\JsonApiClient\HTTPException::class );
+        $this->expectException( \JDWX\JsonApiClient\HTTPException::class );
         $api->get( 'nonexistent?error=404&message=TEST_MESSAGE' );
     }
 
@@ -40,7 +40,7 @@ final class ServerTest extends TestCase {
 
     public function testGetFor500() : void {
         $api = $this->newHttpClient();
-        self::expectException( \JDWX\JsonApiClient\HTTPException::class );
+        $this->expectException( \JDWX\JsonApiClient\HTTPException::class );
         $api->get( 'test?error=500&message=TEST_MESSAGE' );
     }
 

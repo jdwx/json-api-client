@@ -24,6 +24,8 @@ final class GuzzleShimTest extends TestCase {
 
     public function testCreateFactory() : void {
         $factory = GuzzleShim::createFactory();
+        /** @noinspection PhpConditionAlreadyCheckedInspection */
+        /** @noinspection UnnecessaryAssertionInspection */
         self::assertInstanceOf( GuzzleHttp\Psr7\HttpFactory::class, $factory );
     }
 

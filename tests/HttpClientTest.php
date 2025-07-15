@@ -36,8 +36,7 @@ final class HttpClientTest extends TestCase {
 
 
             public function createRequest( string $method, $uri ) : RequestInterface {
-                $fact = new HttpFactory();
-                return $fact->createRequest( $method, $uri );
+                return ( new HttpFactory() )->createRequest( $method, $uri );
             }
 
 
@@ -166,7 +165,7 @@ final class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        self::expectException( TransportException::class );
+        $this->expectException( TransportException::class );
         $cli->get( '/foo' );
     }
 
@@ -177,7 +176,7 @@ final class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        self::expectException( HTTPException::class );
+        $this->expectException( HTTPException::class );
         $cli->get( '/foo' );
     }
 
@@ -200,7 +199,7 @@ final class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        self::expectException( HTTPException::class );
+        $this->expectException( HTTPException::class );
         $cli->get( '/foo' );
     }
 
@@ -273,7 +272,7 @@ final class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        self::expectException( TransportException::class );
+        $this->expectException( TransportException::class );
         $req = new Request( 'GET', 'https://www.example.com/foo' );
         $cli->sendRequest( $req );
     }
@@ -294,6 +293,8 @@ final class HttpClientTest extends TestCase {
 
     public function testWithGuzzle() : void {
         $cli = HttpClient::withGuzzle( 'https://www.example.com/' );
+        /** @noinspection UnnecessaryAssertionInspection */
+        /** @noinspection PhpConditionAlreadyCheckedInspection */
         self::assertInstanceOf( HttpClient::class, $cli );
     }
 
