@@ -115,7 +115,7 @@ class HttpClient {
             }
             $req = $this->requestFactory->createRequest( $i_stMethod, $i_stPath );
             if ( is_string( $i_nstBody ) ) {
-                $req->withBody( $this->streamFactory->createStream( $i_nstBody ) );
+                $req = $req->withBody( $this->streamFactory->createStream( $i_nstBody ) );
             }
             foreach ( $i_rHeaders as $stHeader => $stValue ) {
                 $req = $req->withHeader( $stHeader, $stValue );
