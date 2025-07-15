@@ -77,10 +77,7 @@ class Response implements Stringable {
     /** @return list<string>|null */
     public function getHeader( string $i_stName ) : ?array {
         $i_stName = strtolower( $i_stName );
-        if ( ! array_key_exists( $i_stName, $this->rHeaders ) ) {
-            return null;
-        }
-        return $this->rHeaders[ $i_stName ];
+        return $this->rHeaders[ $i_stName ] ?? null;
     }
 
 
@@ -178,6 +175,16 @@ class Response implements Stringable {
             $this->json = Json::decode( $this->body() );
         }
         return $this->json;
+    }
+
+
+    /** @return array<int|string, mixed> */
+    public function jsonArray() : array {
+        $r = $this->json();
+        if ( ! is_array( $r ) ) {
+            throw new RuntimeException( 'Response is not an array' );
+        }
+        return $r;
     }
 
 

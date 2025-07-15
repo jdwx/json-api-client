@@ -92,6 +92,7 @@ final class ResponseTest extends TestCase {
         $rsp = new Response( 12345, [], $mts );
         $this->expectException( RuntimeException::class );
         $r = $rsp->getOneHeaderEx( 'foo' );
+        /** @noinspection ForgottenDebugOutputInspection */
         var_dump( $r );
     }
 
@@ -239,6 +240,21 @@ final class ResponseTest extends TestCase {
         $rsp = new Response( 12345, [], $mts );
         $this->expectException( JsonException::class );
         $rsp->json();
+    }
+
+
+    public function testJsonArray() : void {
+        $mts = new MyTestStream( '["foo","bar"]' );
+        $rsp = new Response( 12345, [], $mts );
+        self::assertEquals( [ 'foo', 'bar' ], $rsp->jsonArray() );
+
+        # jsonArray() is repeatable.
+        self::assertEquals( [ 'foo', 'bar' ], $rsp->jsonArray() );
+
+        $mts = new MyTestStream( '54321' );
+        $rsp = new Response( 12345, [], $mts );
+        $this->expectException( \JDWX\JsonApiClient\RuntimeException::class );
+        $rsp->jsonArray();
     }
 
 
