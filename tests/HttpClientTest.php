@@ -9,7 +9,6 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\HttpFactory;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use JDWX\JsonApiClient\HttpClient;
@@ -17,8 +16,6 @@ use JDWX\JsonApiClient\HTTPException;
 use JDWX\JsonApiClient\TransportException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\RequestInterface;
 
 
 // require_once __DIR__ . '/MyTestClient.php';
@@ -28,56 +25,11 @@ use Psr\Http\Message\RequestInterface;
 final class HttpClientTest extends TestCase {
 
 
-    public function testConstructForIncompatibleStreamFactory() : void {
-        $mock = new MockHandler( [
-            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
-        ] );
-        $fact = new class() implements RequestFactoryInterface {
-
-
-            public function createRequest( string $method, $uri ) : RequestInterface {
-                return ( new HttpFactory() )->createRequest( $method, $uri );
-            }
-
-
-        };
-        $api = new HttpClient( new Client( [ 'handler' => $mock ] ), i_requestFactory: $fact );
-        $r = $api->get( '/' );
-        self::assertEquals( 200, $r->status() );
-        self::assertEquals( 'baz', $r->body() );
-        self::assertEquals( 'Bar', $r->getOneHeader( 'Foo' ) );
-    }
-
-
-    public function testConstructForMissingFactories() : void {
+    public function testConstruct() : void {
         $mock = new MockHandler( [
             new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
         ] );
         $api = new HttpClient( new Client( [ 'handler' => $mock ] ) );
-        $r = $api->get( '/' );
-        self::assertEquals( 200, $r->status() );
-        self::assertEquals( 'baz', $r->body() );
-        self::assertEquals( 'Bar', $r->getOneHeader( 'Foo' ) );
-    }
-
-
-    public function testConstructForMissingRequestFactory() : void {
-        $mock = new MockHandler( [
-            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
-        ] );
-        $api = new HttpClient( new Client( [ 'handler' => $mock ] ), i_streamFactory: new HttpFactory() );
-        $r = $api->get( '/' );
-        self::assertEquals( 200, $r->status() );
-        self::assertEquals( 'baz', $r->body() );
-        self::assertEquals( 'Bar', $r->getOneHeader( 'Foo' ) );
-    }
-
-
-    public function testConstructForMissingStreamFactory() : void {
-        $mock = new MockHandler( [
-            new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
-        ] );
-        $api = new HttpClient( new Client( [ 'handler' => $mock ] ), i_requestFactory: new HttpFactory() );
         $r = $api->get( '/' );
         self::assertEquals( 200, $r->status() );
         self::assertEquals( 'baz', $r->body() );
@@ -204,6 +156,22 @@ final class HttpClientTest extends TestCase {
     }
 
 
+    public function testGetWithStreamOption() : void {
+        $r = [];
+        $stack = $this->makeHistoryMock( $r, [ new Response( 200, [], 'Hello' ) ] );
+        $http = new Client( [ 'handler' => $stack ] );
+        $cli = new HttpClient( $http );
+        $rsp = $cli->get( 'https://www.example.com/foo', i_bStream: true );
+        assert( is_array( $r[ 0 ][ 'options' ] ) );
+        self::assertTrue( $r[ 0 ][ 'options' ][ 'stream' ] );
+        self::assertSame( 'H', $rsp->streamBody( 1 ) );
+        self::assertSame( 'e', $rsp->streamBody( 1 ) );
+        self::assertSame( 'l', $rsp->streamBody( 1 ) );
+        self::assertSame( 'l', $rsp->streamBody( 1 ) );
+        self::assertSame( 'o', $rsp->streamBody( 1 ) );
+    }
+
+
     public function testPost() : void {
         $mock = new MockHandler( [
             new Response( 200, [ 'Foo' => 'Bar' ], 'baz' ),
@@ -272,8 +240,8 @@ final class HttpClientTest extends TestCase {
         ] );
         $http = new Client( [ 'handler' => $mock ] );
         $cli = new HttpClient( $http );
-        $this->expectException( TransportException::class );
         $req = new Request( 'GET', 'https://www.example.com/foo' );
+        $this->expectException( HTTPException::class );
         $cli->sendRequest( $req );
     }
 
@@ -288,6 +256,33 @@ final class HttpClientTest extends TestCase {
         $rsp = $cli->sendRequest( $req, i_bAllowFailure: true );
         self::assertEquals( 500, $rsp->status() );
         self::assertEquals( 'baz', $rsp->body() );
+    }
+
+
+    public function testSendRequestWithRequestExceptionAndResponse() : void {
+        $response = new Response( 404, [], 'Not Found' );
+        $mock = new MockHandler( [
+            new RequestException( 'Not found', new Request( 'GET', 'https://www.example.com/foo' ), $response ),
+        ] );
+        $http = new Client( [ 'handler' => $mock ] );
+        $cli = new HttpClient( $http );
+        $req = new Request( 'GET', 'https://www.example.com/foo' );
+        $this->expectException( HTTPException::class );
+        $this->expectExceptionMessage( 'HTTP Error 404' );
+        $cli->sendRequest( $req );
+    }
+
+
+    public function testSendRequestWithTransportError() : void {
+        $mock = new MockHandler( [
+            new RuntimeException( 'Network error' ),
+        ] );
+        $http = new Client( [ 'handler' => $mock ] );
+        $cli = new HttpClient( $http );
+        $req = new Request( 'GET', 'https://www.example.com/foo' );
+        $this->expectException( TransportException::class );
+        $this->expectExceptionMessage( 'Transport Error for GET https://www.example.com/foo: Network error' );
+        $cli->sendRequest( $req );
     }
 
 

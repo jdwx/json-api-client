@@ -14,12 +14,9 @@ Or download the source from GitHub: https://github.com/jdwx/json-api-client.git
 
 ## Requirements
 
-This module requires PHP 8.3 or later.  The default implementation
+This module requires PHP 8.3 or later. The implementation
 depends on the excellent [Guzzle](https://docs.guzzlephp.org/en/stable/)
-HTTP client implementation. It also requires the JSON extension.
-
-The goal is to stick pretty close to the PSR HTTP client interfaces, but
-more work remains to be done in that area.
+HTTP client implementation, which provides all the needed features for extended streaming support. It also requires the JSON extension.
 
 ## Usage
 
@@ -42,19 +39,19 @@ $data = $rsp->json();
 var_dump( $data );
 ```
 
-There is also 100% test coverage for this module, which provides additional 
+There is also 100% test coverage for this module, which provides additional
 examples of usage.
 
 ## Stability
 
 This module is considered stable and is used in production code. However, it was
 newly-developed in 2024 based on multiple previous implementations, so it hasn't
-received the same level of testing and extensive use as some of the other modules 
-in this suite.  That said, it successfully processes hundreds of thousands of API
+received the same level of testing and extensive use as some of the other modules
+in this suite. That said, it successfully processes hundreds of thousands of API
 calls per day.
 
 ## History
 
-This module was refactored out of four separate existing modules for 
-interacting with JSON APIs in a larger codebase.  It has been rewritten
-essentially from scratch.  It was initially released in 2024.
+This module was refactored out of four separate existing modules for
+interacting with JSON APIs in a larger codebase. It has been rewritten
+essentially from scratch. It was initially released in 2024.
