@@ -5,12 +5,13 @@ declare( strict_types = 1 );
 
 
 use JDWX\Json\Json;
+use JDWX\Strict\OK;
 
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 
-( function () : void {
+( static function () : void {
 
     header( 'Content-Type: application/json' );
     switch ( $_SERVER[ 'REQUEST_METHOD' ] ) {
@@ -25,8 +26,8 @@ require_once __DIR__ . '/../../vendor/autoload.php';
             break;
 
         case 'POST':
-            $r = Json::decode( file_get_contents( 'php://input' ) );
-            array_walk_recursive( $r, function ( int|string $i_key, mixed $i_x ) : mixed {
+            $r = Json::decode( OK::file_get_contents( 'php://input' ) );
+            array_walk_recursive( $r, static function ( int|string $i_key, mixed $i_x ) : mixed {
                 if ( is_string( $i_x ) ) {
                     return strtoupper( $i_x );
                 }
