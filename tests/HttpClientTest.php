@@ -14,6 +14,7 @@ use GuzzleHttp\Psr7\Response;
 use JDWX\JsonApiClient\HttpClient;
 use JDWX\JsonApiClient\HTTPException;
 use JDWX\JsonApiClient\TransportException;
+use JDWX\Strict\OK;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -47,7 +48,7 @@ final class HttpClientTest extends TestCase {
         $cli->setDebug( true );
         ob_start();
         $cli->post( '/foo', 'body-text', 'text/plain', i_rHeaders: [ 'qux' => 'Qux' ] );
-        $out = ob_get_clean();
+        $out = OK::ob_get_clean();
         self::assertStringContainsString( 'POST /foo', $out );
         self::assertStringContainsString( 'qux: Qux', $out );
         self::assertStringContainsString( 'body-text', $out );
@@ -80,8 +81,22 @@ final class HttpClientTest extends TestCase {
         $cli->setExtraHeader( 'X-Foo', 'Bar' );
         $cli->get( 'https://www.example.com/foo', i_rHeaders: [ 'X-Baz' => 'Qux' ] );
         $req = $r[ 0 ][ 'request' ];
+        assert( $req instanceof Request );
         self::assertEquals( 'Bar', $req->getHeader( 'X-Foo' )[ 0 ] );
         self::assertEquals( 'Qux', $req->getHeader( 'X-Baz' )[ 0 ] );
+    }
+
+
+    public function testGetForExtraHeaderOverwrite() : void {
+        $r = [];
+        $stack = $this->makeHistoryMock( $r );
+        $http = new Client( [ 'handler' => $stack ] );
+        $cli = new HttpClient( $http );
+        $cli->setExtraHeader( 'X-Foo', 'Extra' );
+        $cli->get( 'https://www.example.com/foo', i_rHeaders: [ 'X-Foo' => 'Override' ] );
+        $req = $r[ 0 ][ 'request' ];
+        assert( $req instanceof Request );
+        self::assertSame( 'Override', $req->getHeaderLine( 'X-Foo' ) );
     }
 
 
@@ -194,6 +209,7 @@ final class HttpClientTest extends TestCase {
         $cli->setExtraHeader( 'X-Foo', 'Bar' );
         $cli->post( 'https://www.example.com/foo', '', 'application/json' );
         $req = $r[ 0 ][ 'request' ];
+        assert( $req instanceof Request );
         self::assertEquals( 'Bar', $req->getHeader( 'X-Foo' )[ 0 ] );
     }
 
@@ -205,6 +221,7 @@ final class HttpClientTest extends TestCase {
         $cli = new HttpClient( $http );
         $cli->post( 'https://www.example.com/foo', '', 'application/json', [ 'X-Foo' => 'Bar' ] );
         $req = $r[ 0 ][ 'request' ];
+        assert( $req instanceof Request );
         self::assertEquals( 'Bar', $req->getHeader( 'X-Foo' )[ 0 ] );
     }
 
@@ -231,6 +248,34 @@ final class HttpClientTest extends TestCase {
         $rsp = $cli->sendRequest( $req );
         self::assertEquals( 200, $rsp->status() );
         self::assertEquals( 'baz', $rsp->body() );
+    }
+
+
+    public function testSendRequestForExtraHeaderOverwrite() : void {
+        $r = [];
+        $stack = $this->makeHistoryMock( $r );
+        $http = new Client( [ 'handler' => $stack ] );
+        $cli = new HttpClient( $http );
+        $cli->setExtraHeader( 'X-Foo', 'Extra' );
+        $req = new Request( 'GET', 'https://www.example.com/foo', [ 'X-Foo' => 'Override' ] );
+        $cli->sendRequest( $req );
+        $sent = $r[ 0 ][ 'request' ];
+        assert( $sent instanceof Request );
+        self::assertSame( 'Override', $sent->getHeaderLine( 'X-Foo' ) );
+    }
+
+
+    public function testSendRequestForExtraHeaders() : void {
+        $r = [];
+        $stack = $this->makeHistoryMock( $r );
+        $http = new Client( [ 'handler' => $stack ] );
+        $cli = new HttpClient( $http );
+        $cli->setExtraHeader( 'X-Foo', 'Bar' );
+        $req = new Request( 'GET', 'https://www.example.com/foo' );
+        $cli->sendRequest( $req );
+        $sent = $r[ 0 ][ 'request' ];
+        assert( $sent instanceof Request );
+        self::assertSame( 'Bar', $sent->getHeaderLine( 'X-Foo' ) );
     }
 
 
@@ -294,7 +339,9 @@ final class HttpClientTest extends TestCase {
     }
 
 
-    /** @param array|ArrayAccess<int, array> &$o_rHistory */
+    /** @param array|ArrayAccess<int, array> &$o_rHistory
+     * @noinspection ReferencingObjectsInspection Buggy test.
+     */
     private function makeHistoryMock( array|ArrayAccess &$o_rHistory, ?array $i_nrResponses = null ) : HandlerStack {
         $i_nrResponses = $i_nrResponses ?? [
             new Response( 200, [], '' ),
