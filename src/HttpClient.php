@@ -77,13 +77,13 @@ class HttpClient extends AbstractHttpClient {
             }
             throw new HTTPException(
                 "HTTP Error without response for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
-                $ex->getCode(),
+                intval( $ex->getCode() ),
                 $ex
             );
         } catch ( Throwable $ex ) {
             throw new TransportException(
                 "Transport Error for {$i_stMethod} {$i_stPath}: " . $ex->getMessage(),
-                $ex->getCode(),
+                intval( $ex->getCode() ),
                 $ex
             );
         }
@@ -95,6 +95,12 @@ class HttpClient extends AbstractHttpClient {
 
     public function sendRequest( RequestInterface $i_request, bool $i_bAllowFailure = false ) : Response {
         try {
+            foreach ( $this->getExtraHeaders() as $stHeader => $stValue ) {
+                if ( $i_request->hasHeader( $stHeader ) ) {
+                    continue;
+                }
+                $i_request = $i_request->withHeader( $stHeader, $stValue );
+            }
             $r = [];
             if ( $i_bAllowFailure ) {
                 $r[ 'http_errors' ] = false;
@@ -108,13 +114,13 @@ class HttpClient extends AbstractHttpClient {
             }
             throw new HTTPException(
                 "HTTP Error without response for {$i_request->getMethod()} {$i_request->getUri()}: " . $ex->getMessage(),
-                $ex->getCode(),
+                intval( $ex->getCode() ),
                 $ex
             );
         } catch ( Throwable $ex ) {
             throw new TransportException(
                 "Transport Error for {$i_request->getMethod()} {$i_request->getUri()}: " . $ex->getMessage(),
-                $ex->getCode(),
+                intval( $ex->getCode() ),
                 $ex
             );
         }
