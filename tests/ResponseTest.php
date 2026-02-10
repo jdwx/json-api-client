@@ -72,7 +72,7 @@ final class ResponseTest extends TestCase {
 
             public function log( $level, $message, array $context = [] ) : void {
                 $this->level = $level;
-                $this->stMessage = $message;
+                $this->stMessage = strval( $message );
                 $this->rContext = $context;
             }
 
