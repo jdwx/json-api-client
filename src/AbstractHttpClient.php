@@ -45,12 +45,12 @@ abstract class AbstractHttpClient implements HttpClientInterface {
 
 
     /**
-     * @param string $i_stPath
-     * @param mixed[] $i_rJson JSON to send as the request body.
-     * @param string $i_stContentType Content type of the request body.
-     * @param array $i_rHeaders Additional headers to send. (As header => value pairs.)
-     * @param bool $i_bAllowFailure If true, don't throw an exception on non-2xx status.
-     * @param bool $i_bStream If true, don't wait for the entire response body.
+     * @param string  $i_stPath
+     * @param mixed[] $i_rJson         JSON to send as the request body.
+     * @param string  $i_stContentType Content type of the request body.
+     * @param array   $i_rHeaders      Additional headers to send. (As header => value pairs.)
+     * @param bool    $i_bAllowFailure If true, don't throw an exception on non-2xx status.
+     * @param bool    $i_bStream       If true, don't wait for the entire response body.
      * @return Response
      * @throws JsonException
      */
@@ -61,6 +61,20 @@ abstract class AbstractHttpClient implements HttpClientInterface {
                               bool   $i_bStream = false ) : Response {
         return $this->post( $i_stPath, Json::encode( $i_rJson ), $i_stContentType,
             $i_rHeaders, $i_bAllowFailure, $i_bStream );
+    }
+
+
+    public function setBasicAuth( string $i_stUser, string $i_stPassword ) : void {
+        if ( str_contains( $i_stUser, ':' ) ) {
+            throw new RuntimeException( 'Basic auth user name may not contain a colon' );
+        }
+        $this->setExtraHeader( 'Authorization',
+            'Basic ' . base64_encode( "{$i_stUser}:{$i_stPassword}" ) );
+    }
+
+
+    public function setBearerToken( string $i_stToken ) : void {
+        $this->setExtraHeader( 'Authorization', "Bearer {$i_stToken}" );
     }
 
 

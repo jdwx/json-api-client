@@ -194,6 +194,34 @@ final class MockClientTest extends TestCase {
     }
 
 
+    public function testSetBasicAuth() : void {
+        $cli = new MockClient( null );
+        $cli->setBasicAuth( 'alice', 's3cret' );
+        $cli->queueResponse( 'ok' );
+        $cli->request( 'GET', '/secure' );
+        $req = $cli->shiftRequestArray();
+        self::assertSame( 'Basic ' . base64_encode( 'alice:s3cret' ),
+            $req[ 'headers' ][ 'Authorization' ] );
+    }
+
+
+    public function testSetBasicAuthForColonInUser() : void {
+        $cli = new MockClient( null );
+        $this->expectException( \JDWX\JsonApiClient\RuntimeException::class );
+        $cli->setBasicAuth( 'alice:bob', 's3cret' );
+    }
+
+
+    public function testSetBearerToken() : void {
+        $cli = new MockClient( null );
+        $cli->setBearerToken( 'token123' );
+        $cli->queueResponse( 'ok' );
+        $cli->request( 'GET', '/secure' );
+        $req = $cli->shiftRequestArray();
+        self::assertSame( 'Bearer token123', $req[ 'headers' ][ 'Authorization' ] );
+    }
+
+
     public function testShiftRequest() : void {
         $cli = new MockClient( null );
         $cli->queueResponse( 'first' );
