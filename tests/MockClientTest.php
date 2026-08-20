@@ -207,9 +207,45 @@ final class MockClientTest extends TestCase {
     }
 
 
+    public function testShiftRequestArrayForEmpty() : void {
+        $cli = new MockClient( null );
+        $this->expectException( RuntimeException::class );
+        $this->expectExceptionMessage( 'Expected array, got null' );
+        $cli->shiftRequestArray();
+    }
+
+
+    public function testShiftRequestArrayForObjectRequest() : void {
+        $cli = new MockClient( null );
+        $cli->queueResponse( 'foo' );
+        $cli->sendRequest( new Request( 'GET', 'https://example.com/' ) );
+        $this->expectException( RuntimeException::class );
+        $this->expectExceptionMessage( 'Expected array, got GuzzleHttp\Psr7\Request' );
+        $cli->shiftRequestArray();
+    }
+
+
     public function testShiftRequestForEmpty() : void {
         $cli = new MockClient( null );
         self::assertNull( $cli->shiftRequest() );
+    }
+
+
+    public function testShiftRequestObjectForArrayRequest() : void {
+        $cli = new MockClient( null );
+        $cli->queueResponse( 'foo' );
+        $cli->request( 'GET', '/a' );
+        $this->expectException( RuntimeException::class );
+        $this->expectExceptionMessage( 'Expected RequestInterface, got array' );
+        $cli->shiftRequestObject();
+    }
+
+
+    public function testShiftRequestObjectForEmpty() : void {
+        $cli = new MockClient( null );
+        $this->expectException( RuntimeException::class );
+        $this->expectExceptionMessage( 'Expected RequestInterface, got null' );
+        $cli->shiftRequestObject();
     }
 
 

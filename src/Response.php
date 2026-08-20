@@ -188,6 +188,33 @@ class Response implements Stringable {
     }
 
 
+    /** @return iterable<array<int|string, mixed>> */
+    public function jsonLineArrays() : iterable {
+        foreach ( $this->jsonLines() as $r ) {
+            if ( ! is_array( $r ) ) {
+                throw new RuntimeException( 'Line is not an array' );
+            }
+            yield $r;
+        }
+    }
+
+
+    /** @return iterable<array<int|string, mixed>|bool|float|int|string|null> */
+    public function jsonLines() : iterable {
+        if ( $this->bBodyRead ) {
+            throw new RuntimeException( 'Body already read' );
+        }
+        $lines = new LinesAdapter( $this->smBody );
+        foreach ( $lines->lines() as $stLine ) {
+            $stLine = trim( $stLine );
+            if ( $stLine ) {
+                yield Json::decode( $stLine );
+            }
+        }
+        $this->bBodyRead = true;
+    }
+
+
     public function status() : int {
         return $this->uStatus;
     }

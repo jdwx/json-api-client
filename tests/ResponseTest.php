@@ -4,6 +4,7 @@
 declare( strict_types = 1 );
 
 
+use JDWX\JsonApiClient\MockStream;
 use JDWX\JsonApiClient\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -255,6 +256,106 @@ final class ResponseTest extends TestCase {
         $rsp = new Response( 12345, [], $mts );
         $this->expectException( \JDWX\JsonApiClient\RuntimeException::class );
         $rsp->jsonArray();
+    }
+
+
+    public function testJsonLineArrays() : void {
+        $stream = new MockStream( "{\"foo\":1}\n[2,3]\n" );
+        $rsp = new Response( 12345, [], $stream );
+        $rLines = iterator_to_array( $rsp->jsonLineArrays(), false );
+        self::assertSame( [ [ 'foo' => 1 ], [ 2, 3 ] ], $rLines );
+    }
+
+
+    public function testJsonLineArraysForNonArrayLine() : void {
+        $stream = new MockStream( "{\"foo\":1}\n54321\n{\"bar\":2}\n" );
+        $rsp = new Response( 12345, [], $stream );
+        $rOut = [];
+        try {
+            foreach ( $rsp->jsonLineArrays() as $rLine ) {
+                $rOut[] = $rLine;
+            }
+            self::fail( 'Expected RuntimeException for non-array line.' );
+        } catch ( \JDWX\JsonApiClient\RuntimeException ) {
+            # Lines before the bad one were already yielded.
+            self::assertSame( [ [ 'foo' => 1 ] ], $rOut );
+        }
+    }
+
+
+    public function testJsonLines() : void {
+        $rIn = [
+            '{"foo":1}',
+            '{"bar":2}',
+            3,
+            '{"baz":4}',
+            '{"qux":5}',
+        ];
+        $rCheck = [
+            [ 'foo' => 1 ],
+            [ 'bar' => 2 ],
+            3,
+            [ 'baz' => 4 ],
+            [ 'qux' => 5 ],
+        ];
+        $st = implode( "\n", $rIn );
+        $stream = new MockStream( $st );
+        $rsp = new Response( 12345, [], $stream );
+        $uRow = -1;
+        foreach ( $rsp->jsonLines() as $uRow => $rLine ) {
+            self::assertSame( $rCheck[ $uRow ], $rLine );
+        }
+        self::assertSame( 4, $uRow );
+    }
+
+
+    public function testJsonLinesForBlankLines() : void {
+        $stream = new MockStream( "{\"foo\":1}\n\n{\"bar\":2}\n" );
+        $rsp = new Response( 12345, [], $stream );
+        $rLines = iterator_to_array( $rsp->jsonLines(), false );
+        self::assertSame( [ [ 'foo' => 1 ], [ 'bar' => 2 ] ], $rLines );
+    }
+
+
+    public function testJsonLinesForBodyAlreadyRead() : void {
+        $stream = new MockStream( "{\"foo\":1}\n" );
+        $rsp = new Response( 12345, [], $stream );
+        $rsp->body();
+        $this->expectException( \JDWX\JsonApiClient\RuntimeException::class );
+        iterator_to_array( $rsp->jsonLines(), false );
+    }
+
+
+    public function testJsonLinesForCarriageReturnLineFeed() : void {
+        $stream = new MockStream( "{\"foo\":1}\r\n{\"bar\":2}\r\n" );
+        $rsp = new Response( 12345, [], $stream );
+        $rLines = iterator_to_array( $rsp->jsonLines(), false );
+        self::assertSame( [ [ 'foo' => 1 ], [ 'bar' => 2 ] ], $rLines );
+    }
+
+
+    public function testJsonLinesForEmptyBody() : void {
+        $stream = new MockStream( '' );
+        $rsp = new Response( 12345, [], $stream );
+        $rLines = iterator_to_array( $rsp->jsonLines(), false );
+        self::assertSame( [], $rLines );
+    }
+
+
+    public function testJsonLinesForTrailingNewline() : void {
+        $stream = new MockStream( "{\"foo\":1}\n{\"bar\":2}\n" );
+        $rsp = new Response( 12345, [], $stream );
+        $rLines = iterator_to_array( $rsp->jsonLines(), false );
+        self::assertSame( [ [ 'foo' => 1 ], [ 'bar' => 2 ] ], $rLines );
+    }
+
+
+    public function testJsonLinesThenBody() : void {
+        $stream = new MockStream( "{\"foo\":1}\n" );
+        $rsp = new Response( 12345, [], $stream );
+        iterator_to_array( $rsp->jsonLines(), false );
+        $this->expectException( \JDWX\JsonApiClient\RuntimeException::class );
+        $rsp->body();
     }
 
 

@@ -174,6 +174,24 @@ final class MockStreamTest extends TestCase {
     }
 
 
+    public function testReadForRequestShorterThanPresetSize() : void {
+        $ms = new MockStream( 'abcdefgh' );
+        $ms->rReadSizes = [ 6 ];
+
+        # Requested 3 is shorter than the preset 6, so the preset is split
+        # and the remaining 3 bytes stay queued for the next read.
+        self::assertSame( 'abc', $ms->read( 3 ) );
+        self::assertSame( [ 3 ], $ms->rReadSizes );
+
+        # The remainder still caps a larger request.
+        self::assertSame( 'def', $ms->read( 5 ) );
+
+        # With no presets left, reads revert to the requested length.
+        self::assertSame( 'gh', $ms->read( 5 ) );
+        self::assertTrue( $ms->eof() );
+    }
+
+
     public function testRewind() : void {
         $ms = new MockStream( 'hello' );
         $ms->read( 3 );

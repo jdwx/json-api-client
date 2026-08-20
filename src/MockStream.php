@@ -13,6 +13,10 @@ use Psr\Http\Message\StreamInterface;
 class MockStream implements StreamInterface {
 
 
+    /** @var list<int> */
+    public array $rReadSizes = [];
+
+
     private int $uOffset = 0;
 
     private bool $bDetached = false;
@@ -95,7 +99,14 @@ class MockStream implements StreamInterface {
 
 
     public function read( int $length ) : string {
-        $st = substr( $this->stStream, $this->uOffset, $length );
+        $uReadSize = array_shift( $this->rReadSizes );
+        if ( is_int( $uReadSize ) && $uReadSize > $length ) {
+            array_unshift( $this->rReadSizes, $uReadSize - $length );
+            $uReadSize = $length;
+        } elseif ( ! is_int( $uReadSize ) ) {
+            $uReadSize = $length;
+        }
+        $st = substr( $this->stStream, $this->uOffset, $uReadSize );
         $this->uOffset += strlen( $st );
         return $st;
     }
